@@ -5,7 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "mcp[cli]>=1.26.0",
     "mistralai>=2.1.3",
     "pypdf>=6.9.2",
     "python-dotenv>=1.2.2",
 ]
+
+[project.scripts]
+pdf2md-mcp = "mcp_server:mcp.run"

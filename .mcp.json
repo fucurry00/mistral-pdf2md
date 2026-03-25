@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pdf2md": {
+      "command": "uv",
+      "args": ["run", "pdf2md-mcp"],
+      "cwd": "/Users/kentaro/area_of_responsibility/extend_claude/mistral-pdf2md"
+    }
+  }
+}
