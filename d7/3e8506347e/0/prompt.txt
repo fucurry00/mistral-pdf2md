@@ -1,0 +1,47 @@
+コミット
+
+---
+
+このスキルの内容をmcpサーバー化する方がいいのではないだろうか？
+pdfをmcpに伝達、ocr api コールを行いmdとイメージを分離、後処理として成形を既存コードで行い、それをgeminicliを走らせて校正を行い、結果ファイルを該当ディレクトリに写す。
+ワークフローの現構想は次の通りである、これをブラッシュアップしたい
+
+---
+
+なんのツールの話をしていた？
+
+---
+
+1. Google公式 gemini-cli
+2. ステップ別となるとmd成形や、gemini校正が公開されるという意味か？
+
+---
+
+convert_pdf
+
+---
+
+一旦これまでの作業となどを元に、ディレクトリを整理しよう。作業したスクリプトが散乱していたり、ディレクトリが乱立しているので、まずは構造を把握してどのように整理していくか考えよう
+
+---
+
+”ocr_cleanup” ”mistral-output” gitやentireの履歴からこのディレクトリだけ復旧できる？中に結果物があって、比較などに使うんだよね
+
+---
+
+再実行
+
+---
+
+<task-notification>
+<task-id>berhfwat9</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-kentaro-area-of-responsibility-extend-claude-mistral-pdf2md/d7238d38-10dc-49af-bfd7-12aa2a6f080c/tasks/berhfwat9.output</output-file>
+<status>completed</status>
+<summary>Background command "Test gemini CLI with default model" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-kentaro-area-of-responsibility-extend-claude-mistral-pdf2md/d7238d38-10dc-49af-bfd7-12aa2a6f080c/tasks/berhfwat9.output
+
+---
+
+はい
