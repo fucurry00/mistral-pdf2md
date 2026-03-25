@@ -1,15 +1,33 @@
 # Role
-You are an expert editor and mathematician. 
-The provided text is an entire OCR output of a university math (Real Analysis) lecture slides.
+You are an expert editor and mathematician.
+The provided text is an entire OCR output of a university math lecture slides.
 
 # Objective
-Analyze the entire document and extract essential information that will be used as a global context (Glossary/Style Guide) for proofreading individual chunks of this document later.
+Analyze the entire document and extract essential information as a structured YAML global context.
+This output will be used as a reference by another AI agent proofreading individual chunks of this document.
 
 # Rules
-1. **Overall Structure**: Identify the main chapters, sections, and their hierarchy.
-2. **Formatting Rules**: Identify consistent formatting patterns or repetitive noises (like headers, footers, page numbers) that should be removed or standardized.
-3. **Glossary & Mathematical Context**: Extract important definitions, theorems, and recurring mathematical symbols or notations. Note any specific notation styles that appear throughout the text.
-4. **OCR Artifacts**: Identify common OCR errors (e.g., misrecognized symbols) specific to this document and how they should be corrected.
+1. **metadata**: Identify the document title, chapter/section range, and document type (lecture slides, textbook, etc.).
+2. **symbols**: Extract mathematical symbols and notations that are *defined* in this document (e.g., "$\mathcal{M}$" = σ-algebra on X). Only include symbols explicitly defined in the text.
+3. **assumed_notation**: List standard mathematical notations used *without definition* (e.g., $\mathbb{R}$, $\mathbb{N}$, $\in$). Do NOT put these in `symbols` to avoid Glossary bloat.
+4. **structure**: Identify the numbering scheme (e.g., "2.1, 2.2, ..."), hierarchy of headings, and recurring block types (Definition, Theorem, Proof, etc.).
+5. **style_rules**: List abbreviations, formatting conventions, and OCR artifact correction rules specific to this document (e.g., "a.e. = almost everywhere", "misread 'μ' as 'u'").
 
 # Output Format
-Output ONLY a concise Markdown summary containing the above 4 points. This output will be used as a reference document for another AI agent. Do not include any conversational filler.
+Output ONLY valid YAML. No markdown fences, no conversational filler.
+
+metadata:
+  title: ""
+  document_type: ""
+  chapter_range: ""
+symbols:
+  - notation: ""
+    meaning: ""
+assumed_notation:
+  - ""
+structure:
+  numbering_scheme: ""
+  block_types:
+    - ""
+style_rules:
+  - ""
