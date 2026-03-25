@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "5e722667035f",
+  "session_id": "c2ecf930-6248-4fa6-80dc-6d8a4d5bc450",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-25T06:33:11.778142Z",
+  "branch": "master",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "apps/ocr_cleanup-two_pass/process_markdown.py",
+    "apps/ocr_cleanup-two_pass/prompt_pass1.md",
+    "apps/ocr_cleanup-two_pass/prompt_pass2.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "fd3dce663d9f",
+  "token_usage": {
+    "input_tokens": 164,
+    "cache_creation_tokens": 476331,
+    "cache_read_tokens": 11647072,
+    "output_tokens": 57618,
+    "api_call_count": 117
+  },
+  "session_metrics": {
+    "turn_count": 17
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-25T06:33:11.143476Z",
+    "agent_lines": 312,
+    "human_added": 123,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 435,
+    "agent_percentage": 71.72413793103448
+  }
+}
