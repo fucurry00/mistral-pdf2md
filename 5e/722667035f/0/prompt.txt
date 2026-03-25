@@ -81,3 +81,15 @@ Read the output file to retrieve the result: /private/tmp/claude-501/-Users-kent
 ---
 
 続きを
+
+---
+
+次
+
+---
+
+その前に仕様の内容をアップデートして @apps/ocr_cleanup-two_pass/SPEC.md
+
+---
+
+`SPEC.md` の内容はアップデートしよね？
