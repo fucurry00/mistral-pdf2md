@@ -43,7 +43,9 @@ def run_gemini(input_text, prompt_path):
     Runs the gemini CLI command with the specified prompt and input text.
     """
     try:
-        cmd = ["gemini", "--model", "gemini-3-flash-preview", "-p", prompt_path]
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            prompt = f.read()
+        cmd = ["gemini", "--model", "gemini-3-flash-preview", "-p", prompt]
         result = subprocess.run(
             cmd,
             input=input_text,
