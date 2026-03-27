@@ -2,8 +2,13 @@
 """
 Convert PDF to Markdown using Mistral OCR API.
 
-Usage:
+Single file:
     python convert_pdf_to_markdown.py <input.pdf> <output.md> [--pages "1-5"] [--chunk-size 20] [--timeout 120]
+
+Directory (batch):
+    python convert_pdf_to_markdown.py <pdf_dir/>               # outputs .md alongside each PDF
+    python convert_pdf_to_markdown.py <pdf_dir/> <out_dir/>    # outputs to separate directory
+    python convert_pdf_to_markdown.py <pdf_dir/> --dry-run     # preview without converting
 
 Resume: if a previous run was interrupted, re-run the same command.
 A progress file (.progress.json) is saved alongside the output and
@@ -220,10 +225,24 @@ def convert_pdf_to_markdown(pdf_path, output_path, page_selection=None, chunk_si
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert PDF to Markdown using Mistral OCR API"
+        description="Convert PDF to Markdown using Mistral OCR API",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
     )
-    parser.add_argument("input_pdf", help="Input PDF file path")
-    parser.add_argument("output_md", help="Output Markdown file path")
+    parser.add_argument(
+        "input",
+        help="Input PDF file, or directory containing PDF files (batch mode)",
+    )
+    parser.add_argument(
+        "output",
+        nargs="?",
+        default=None,
+        help=(
+            "Output Markdown file (single-file mode), "
+            "or output directory (batch mode). "
+            "Defaults to same location as input."
+        ),
+    )
     parser.add_argument("--pages", help='Page selection: "1,3,5" or "1-5"', default=None)
     parser.add_argument(
         "--chunk-size",
@@ -237,17 +256,81 @@ def main():
         default=DEFAULT_TIMEOUT,
         help=f"API call timeout in seconds (default: {DEFAULT_TIMEOUT})",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Batch mode only: list PDFs that would be converted without processing them",
+    )
 
     args = parser.parse_args()
     chunk_size = args.chunk_size if args.chunk_size > 0 else None
+    input_path = Path(args.input)
 
-    try:
-        convert_pdf_to_markdown(
-            args.input_pdf, args.output_md, args.pages, chunk_size, args.timeout
-        )
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    # ── Directory (batch) mode ──────────────────────────────────────────────
+    if input_path.is_dir():
+        pdf_files = sorted(input_path.glob("*.pdf"))
+        if not pdf_files:
+            print(f"No PDF files found in {input_path}", file=sys.stderr)
+            sys.exit(1)
+
+        out_dir = Path(args.output) if args.output else input_path
+
+        if args.dry_run:
+            print(f"[dry-run] Found {len(pdf_files)} PDF file(s) in {input_path}:")
+            for pdf in pdf_files:
+                md_path = out_dir / (pdf.stem + ".md")
+                status = "EXISTS" if md_path.exists() else "new"
+                print(f"  [{status:6}] {pdf.name}  →  {md_path}")
+            return
+
+        if args.pages:
+            print(
+                "Warning: --pages is ignored in batch mode "
+                "(applies to all files equally, which is rarely useful).",
+                file=sys.stderr,
+            )
+
+        out_dir.mkdir(parents=True, exist_ok=True)
+        errors = []
+        for i, pdf in enumerate(pdf_files, 1):
+            md_path = out_dir / (pdf.stem + ".md")
+            print(f"\n[{i}/{len(pdf_files)}] {pdf.name}")
+            try:
+                convert_pdf_to_markdown(pdf, md_path, None, chunk_size, args.timeout)
+            except Exception as e:
+                print(f"  Error: {e}", file=sys.stderr)
+                errors.append((pdf.name, str(e)))
+
+        print(f"\nBatch complete: {len(pdf_files) - len(errors)}/{len(pdf_files)} succeeded.")
+        if errors:
+            print("Failed files:", file=sys.stderr)
+            for name, msg in errors:
+                print(f"  {name}: {msg}", file=sys.stderr)
+            sys.exit(1)
+
+    # ── Single-file mode ────────────────────────────────────────────────────
+    else:
+        if not input_path.exists():
+            print(f"File not found: {input_path}", file=sys.stderr)
+            sys.exit(1)
+
+        if args.output is None:
+            output_md = input_path.with_suffix(".md")
+        else:
+            output_md = Path(args.output)
+
+        if args.dry_run:
+            status = "EXISTS" if output_md.exists() else "new"
+            print(f"[dry-run] {input_path.name}  →  {output_md}  [{status}]")
+            return
+
+        try:
+            convert_pdf_to_markdown(
+                input_path, output_md, args.pages, chunk_size, args.timeout
+            )
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
