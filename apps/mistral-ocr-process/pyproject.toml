@@ -1,0 +1,11 @@
+[project]
+name = "mistral-ocr-process"
+version = "0.1.0"
+description = "PDF-to-Markdown pipeline: Mistral OCR, rule-based cleanup, Gemini analysis"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mistralai",
+    "pypdf",
+    "python-dotenv",
+]

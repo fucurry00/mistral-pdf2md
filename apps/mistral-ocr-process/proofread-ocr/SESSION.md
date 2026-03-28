@@ -1,5 +1,5 @@
 ## constructing ocr2gemini process
 
 ```
-claude --resume proofread-ocr-implementation
+claude --resume "proofread-ocr-implementation"
 ```

@@ -34,7 +34,7 @@ DEFAULT_TIMEOUT = 120  # seconds
 def load_api_key():
     """Load Mistral API key from project root .env"""
     # scripts/ -> mistral-pdf-to-markdown/ -> skills/ -> .claude/ -> project root
-    env_path = Path(__file__).parent.parent / ".env"
+    env_path = Path(__file__).parent / ".env"
     load_dotenv(env_path)
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:

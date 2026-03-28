@@ -1,27 +1,40 @@
+#!/usr/bin/env python3
 """
-cleanup_ocr.py — General-purpose OCR Markdown cleanup.
+cleanup_ocr.py — OCR Markdown cleanup (general + math modes).
 
-Fixes (applied by default):
-  1. html_entities      : HTML entities (&amp; &lt; &gt; etc.)
+Modes:
+  general : 9 fixes for any OCR'd Markdown (default separators removal, etc.)
+  math    : 14 fixes including LaTeX-specific repairs (default mode)
+
+General fixes (always active):
+  1. html_entities      : &gt; &lt; &amp; &nbsp; etc. → plain characters
   2. page_numbers       : Standalone page numbers (Arabic + Roman numerals)
   3. running_headers    : Running headers/footers (book-specific regex patterns)
   4. separators         : Page-break --- separators
-  5. page_break_headers : Repeated chapter titles after --- (bare text, not headings)
+  5. page_break_headers : Repeated chapter titles after ---
   6. empty_headings     : Empty ## headings with no content
   7. image_refs         : Image references (comment / delete / placeholder)
   8. standalone_dots    : Isolated dots left from blank pages
   9. excessive_blanks   : 4+ consecutive blank lines → 2
 
+Math-only fixes (--mode math):
+  10. tab_corruption    : TAB+ext{ → \\text{ (binary-level \\t corruption fix)
+  11. spaced_text       : \\text{f o r a l l} → \\text{for all}
+  12. text_spacing      : \\text{for} → \\text{ for } (add spaces around connectives)
+  13. page_headers      : Author name lines, ALL CAPS section headers
+  14. dollar_artifacts  : Empty $$ $$ blocks
+
 Usage:
   python cleanup_ocr.py <file.md> [file2.md ...]
   python cleanup_ocr.py <directory/>
+  python cleanup_ocr.py <file.md> --mode general        # general fixes only
+  python cleanup_ocr.py <file.md> --mode math            # include LaTeX fixes (default)
   python cleanup_ocr.py <file.md> --preset dummit-foote
-  python cleanup_ocr.py <file.md> --header-pattern "^Chapter \\d+" --header-pattern "^Section \\d+"
-  python cleanup_ocr.py <file.md> --no-remove-separators
-  python cleanup_ocr.py <file.md> --page-number-range 2,5
+  python cleanup_ocr.py <file.md> --header-pattern "^Chapter \\d+"
+  python cleanup_ocr.py <file.md> --page-header-author="Andreas Gathmann"
+  python cleanup_ocr.py <file.md> --only=html_entities,spaced_text
   python cleanup_ocr.py <file.md> -o cleaned.md
   python cleanup_ocr.py <directory/> --dry-run --verbose
-  python cleanup_ocr.py <file.md> --only=html_entities,page_numbers
   python cleanup_ocr.py <directory/> --verify
 """
 
@@ -34,12 +47,12 @@ from pathlib import Path
 # Built-in presets: book name → list of regex patterns for running headers
 PRESETS: dict[str, list[str]] = {
     "dummit-foote": [
-        r"^Sec\. \d+\.\d+[^\n]*$",   # "Sec. 10.1 Basic Definitions and Examples"
-        r"^Chap\. \d+[^\n]*$",         # "Chap. 10 Introduction to Module Theory"
+        r"^Sec\. \d+\.\d+[^\n]*$",
+        r"^Chap\. \d+[^\n]*$",
     ],
 }
 
-ALL_FIXES = [
+GENERAL_FIXES = [
     "html_entities",
     "page_numbers",
     "running_headers",
@@ -51,9 +64,19 @@ ALL_FIXES = [
     "excessive_blanks",
 ]
 
+MATH_FIXES = [
+    "tab_corruption",
+    "spaced_text",
+    "text_spacing",
+    "page_headers",
+    "dollar_artifacts",
+]
+
+ALL_FIXES = GENERAL_FIXES + MATH_FIXES
+
 
 # ============================================================
-# Fix functions
+# General fix functions
 # ============================================================
 
 def fix_html_entities(text: str) -> str:
@@ -73,9 +96,7 @@ def fix_html_entities(text: str) -> str:
 
 def fix_standalone_page_numbers(text: str, page_min: int = 3, page_max: int = 4) -> str:
     """Remove standalone Arabic and Roman numeral page numbers."""
-    # Arabic numerals with configurable digit range (standalone lines)
     text = re.sub(rf"^\d{{{page_min},{page_max}}}\s*$", "", text, flags=re.MULTILINE)
-    # Roman numerals (surrounded by blank lines)
     text = re.sub(
         r"\n\n(?:x{0,3}(?:ix|iv|v?i{0,3}))\n\n",
         "\n\n", text, flags=re.IGNORECASE,
@@ -96,17 +117,7 @@ def fix_separators(text: str) -> str:
 
 
 def fix_page_break_headers(text: str) -> str:
-    """Remove bare chapter title repetitions that appear immediately after ---.
-
-    Pattern seen in many textbooks:
-      ---
-      (blank line)
-      5. Tensor Products    ← page header repeated as bare text (no #)
-      (blank line)
-
-    Only removes short lines (≤60 chars) starting with a numbered title format
-    and containing no LaTeX ($), to avoid false-positives on numbered list items.
-    """
+    """Remove bare chapter title repetitions after --- separators."""
     lines = text.split("\n")
     result = []
     i = 0
@@ -120,9 +131,9 @@ def fix_page_break_headers(text: str) -> str:
             and len(lines[i + 2].strip()) <= 60
             and "$" not in lines[i + 2]
         ):
-            result.append(lines[i])      # keep ---
-            result.append(lines[i + 1])  # keep blank line
-            i += 3                       # skip title line
+            result.append(lines[i])
+            result.append(lines[i + 1])
+            i += 3
             continue
         result.append(lines[i])
         i += 1
@@ -138,16 +149,13 @@ def fix_empty_headings(text: str) -> str:
 def fix_image_refs(text: str, mode: str = "comment") -> str:
     """Process image references.
 
-    mode:
-      'comment'     : convert to <!-- Figure: alt_text -->
-      'delete'      : remove the line entirely
-      'placeholder' : replace with [Figure]
+    mode: 'comment' | 'delete' | 'placeholder'
     """
     if mode == "delete":
         text = re.sub(r"!\[[^\]]*\]\([^)]*\)\n?", "", text)
     elif mode == "placeholder":
         text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "[Figure]", text)
-    else:  # comment
+    else:
         text = re.sub(
             r"!\[([^\]]*)\]\([^)]*\)",
             lambda m: "<!-- Figure: " + m.group(1) + " -->",
@@ -162,8 +170,150 @@ def fix_standalone_dots(text: str) -> str:
 
 
 def fix_excessive_blanks(text: str) -> str:
-    """Collapse 4+ consecutive blank lines to 2 (one visible blank line)."""
+    """Collapse 4+ consecutive blank lines to 2."""
     return re.sub(r"\n{4,}", "\n\n\n", text)
+
+
+# ============================================================
+# Math-specific fix functions (--mode math)
+# ============================================================
+
+def fix_tab_corruption(filepath: Path) -> bool:
+    r"""Binary-level fix: TAB(0x09) + 'ext{' → '\\text{'.
+
+    Python string processing can corrupt \\text into \t + ext.
+    Returns True if any fix was applied.
+    """
+    content = filepath.read_bytes()
+    original = content
+    content = content.replace(b"\x09ext{", b"\\text{")
+    content = content.replace(b"\x09ext {", b"\\text {")
+    if content != original:
+        filepath.write_bytes(content)
+        return True
+    return False
+
+
+# Greedy word table for re-wordifying collapsed text (longest first)
+_WORD_TABLE = [
+    ("withrespectto", "with respect to"),
+    ("ifandonlyif", "if and only if"),
+    ("ifandonly", "if and only"),
+    ("suchthat", "such that"),
+    ("otherwise", "otherwise"),
+    ("forall", "for all"),
+    ("forevery", "for every"),
+    ("foreach", "for each"),
+    ("forsome", "for some"),
+    ("forany", "for any"),
+    ("either", "either"),
+    ("neither", "neither"),
+    ("where", "where"),
+    ("since", "since"),
+    ("hence", "hence"),
+    ("with", "with"),
+    ("resp", "resp"),
+    ("some", "some"),
+    ("over", "over"),
+    ("then", "then"),
+    ("and", "and"),
+    ("for", "for"),
+    ("all", "all"),
+    ("any", "any"),
+    ("not", "not"),
+    ("mod", "mod"),
+    ("iff", "iff"),
+    ("if", "if"),
+    ("in", "in"),
+    ("or", "or"),
+    ("on", "on"),
+    ("of", "of"),
+    ("as", "as"),
+    ("to", "to"),
+]
+
+
+def _re_wordify(collapsed: str) -> str:
+    """Re-split a collapsed string like 'forall' into 'for all'."""
+    result = []
+    i = 0
+    while i < len(collapsed):
+        matched = False
+        for word, replacement in _WORD_TABLE:
+            if collapsed[i:].startswith(word):
+                if result:
+                    result.append(" ")
+                result.append(replacement)
+                i += len(word)
+                matched = True
+                break
+        if not matched:
+            result.append(collapsed[i])
+            i += 1
+    return "".join(result)
+
+
+def fix_spaced_text(text: str) -> str:
+    r"""Fix OCR-inserted per-character spaces in \\text{} blocks.
+
+    \\text{f o r a l l} → \\text{for all}
+    """
+    def fix_block(match):
+        content = match.group(1)
+        if re.match(r"^[a-z]( [a-z])+$", content.strip()):
+            collapsed = content.strip().replace(" ", "")
+            restored = _re_wordify(collapsed)
+            return "\\text{" + restored + "}"
+        return match.group(0)
+
+    return re.sub(r"\\text\s*\{([^}]+)\}", fix_block, text)
+
+
+# Connector words that need surrounding spaces in math mode
+_CONNECTOR_WORDS = [
+    "for all", "for some", "for any", "for every", "for each",
+    "such that", "if and only if",
+    "and", "or", "if", "with", "for", "in", "on", "as", "to",
+    "where", "resp", "otherwise", "mod",
+]
+
+
+def fix_text_spacing(text: str) -> str:
+    r"""Add surrounding spaces to connectives inside \\text{}.
+
+    \\text{for} → \\text{ for }
+    Uses function replacement to avoid \\t corruption in re.sub.
+    """
+    def add_spaces(match):
+        content = match.group(1)
+        stripped = content.strip()
+        if stripped in _CONNECTOR_WORDS:
+            return "\\text{ " + stripped + " }"
+        return match.group(0)
+
+    return re.sub(r"\\text\{([^}]+)\}", add_spaces, text)
+
+
+def fix_page_headers(text: str, author: str | None = None) -> str:
+    """Remove page header remnants.
+
+    - Author name standalone lines
+    - ALL CAPS section headers (e.g., '1.1. ALGEBRAIC PRELIMINARIES')
+    - 'CHAPTER N. TITLE' format headers
+    """
+    if author:
+        if text.startswith(author + "\n"):
+            text = text[len(author) + 1 :].lstrip("\n")
+        text = re.sub(r"\n\n" + re.escape(author) + r"\n", "\n", text)
+
+    text = re.sub(r"\n\d+\.\d+\.\s+[A-Z][A-Z\s]+\n", "\n", text)
+    text = re.sub(r"\nCHAPTER \d+\.\s+[A-Z][A-Z\s]+\n", "\n", text)
+    return text
+
+
+def fix_dollar_artifacts(text: str) -> str:
+    """Remove empty math blocks like $$ $$."""
+    return re.sub(r"\$\$\s+\$\$", "", text)
 
 
 # ============================================================
@@ -178,14 +328,21 @@ def process_file(
     page_min: int,
     page_max: int,
     image_mode: str,
+    page_header_author: str | None,
     dry_run: bool,
     verbose: bool,
     output_path: Path | None = None,
 ) -> bool:
     """Apply active fixes to a single file. Returns True if content changed."""
+    # Binary-level fix must run first (before reading as text)
+    tab_fixed = False
+    if "tab_corruption" in active_fixes:
+        tab_fixed = fix_tab_corruption(path)
+
     original = path.read_text(encoding="utf-8")
     text = original
 
+    # General fixes
     if "html_entities" in active_fixes:
         text = fix_html_entities(text)
     if "page_numbers" in active_fixes:
@@ -202,11 +359,23 @@ def process_file(
         text = fix_image_refs(text, mode=image_mode)
     if "standalone_dots" in active_fixes:
         text = fix_standalone_dots(text)
+
+    # Math-specific fixes
+    if "spaced_text" in active_fixes:
+        text = fix_spaced_text(text)
+    if "text_spacing" in active_fixes:
+        text = fix_text_spacing(text)
+    if "page_headers" in active_fixes:
+        text = fix_page_headers(text, author=page_header_author)
+    if "dollar_artifacts" in active_fixes:
+        text = fix_dollar_artifacts(text)
+
+    # Always last
     if "excessive_blanks" in active_fixes:
         text = fix_excessive_blanks(text)
 
     text = text.strip() + "\n"
-    changed = text != original
+    changed = (text != original) or tab_fixed
 
     if verbose and changed:
         diff = "\n".join(difflib.unified_diff(
@@ -234,12 +403,23 @@ def process_file(
 
 def verify_files(files: list[Path]) -> dict[str, int]:
     """Count remaining issues in the processed files."""
-    counts = {"html_entities": 0, "image_refs": 0, "empty_headings": 0}
+    counts = {
+        "html_entities": 0,
+        "tab_corruption": 0,
+        "spaced_text": 0,
+        "image_refs": 0,
+        "empty_headings": 0,
+        "dollar_artifacts": 0,
+    }
     for path in files:
+        raw = path.read_bytes()
         text = path.read_text(encoding="utf-8")
         counts["html_entities"] += len(re.findall(r"&gt;|&lt;|&amp;", text))
+        counts["tab_corruption"] += raw.count(b"\x09ext{") + raw.count(b"\x09ext {")
+        counts["spaced_text"] += len(re.findall(r"\\text\s*\{[a-z]( [a-z]){2,}\}", text))
         counts["image_refs"] += len(re.findall(r"!\[", text))
         counts["empty_headings"] += len(re.findall(r"(?m)^##\s*$", text))
+        counts["dollar_artifacts"] += len(re.findall(r"\$\$\s+\$\$", text))
     return counts
 
 
@@ -249,13 +429,19 @@ def verify_files(files: list[Path]) -> dict[str, int]:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Clean up OCR-extracted Markdown files.",
+        description="OCR Markdown cleanup (general + math modes).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     parser.add_argument(
         "inputs", nargs="+",
         help="Markdown files or directories to process",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["general", "math"],
+        default="math",
+        help="Cleanup mode: general (9 fixes) or math (14 fixes, default)",
     )
     parser.add_argument(
         "--preset",
@@ -278,6 +464,12 @@ def main():
         help="Keep --- page-break separators instead of removing them",
     )
     parser.add_argument(
+        "--remove-separators",
+        dest="remove_separators",
+        action="store_true",
+        help="Remove --- page-break separators (default)",
+    )
+    parser.add_argument(
         "--page-number-range",
         default="3,4",
         metavar="MIN,MAX",
@@ -288,6 +480,11 @@ def main():
         choices=["comment", "delete", "placeholder"],
         default="comment",
         help="How to handle image references (default: comment)",
+    )
+    parser.add_argument(
+        "--page-header-author",
+        default=None,
+        help='Author name to remove as page header (e.g., "Andreas Gathmann")',
     )
     parser.add_argument(
         "--only",
@@ -328,9 +525,15 @@ def main():
         print("Error: --page-number-range must be MIN,MAX (e.g. 3,4)", file=sys.stderr)
         sys.exit(1)
 
-    active_fixes = set(args.only.split(",")) if args.only else set(ALL_FIXES)
+    # Determine active fixes based on mode and --only
+    if args.only:
+        active_fixes = set(args.only.split(","))
+    elif args.mode == "math":
+        active_fixes = set(ALL_FIXES)
+    else:
+        active_fixes = set(GENERAL_FIXES)
 
-    # Collect files from inputs (files or directories)
+    # Collect files
     files: list[Path] = []
     for inp in args.inputs:
         p = Path(inp)
@@ -350,7 +553,7 @@ def main():
         sys.exit(1)
 
     mode_label = "[dry-run] " if args.dry_run else ""
-    print(f"{mode_label}Processing {len(files)} file(s) ...")
+    print(f"{mode_label}Processing {len(files)} file(s) (mode={args.mode}) ...")
     if args.only:
         print(f"  Active fixes: {args.only}")
 
@@ -365,6 +568,7 @@ def main():
             page_min=page_min,
             page_max=page_max,
             image_mode=args.image_mode,
+            page_header_author=args.page_header_author,
             dry_run=args.dry_run,
             verbose=args.verbose,
             output_path=output_path,
@@ -373,7 +577,7 @@ def main():
             modified += 1
             label = "[would modify]" if args.dry_run else "Modified"
             if output_path:
-                suffix = f"  → {output_path}"
+                suffix = f"  -> {output_path}"
             elif not args.dry_run:
                 suffix = f"  (backup: {path.with_suffix('.md.bak').name})"
             else:
@@ -392,7 +596,7 @@ def main():
         counts = verify_files(files)
         all_clear = True
         for check, count in counts.items():
-            status = "✓" if count == 0 else "✗"
+            status = "OK" if count == 0 else "!!"
             if count > 0:
                 all_clear = False
             print(f"  {status} {check}: {count} remaining")

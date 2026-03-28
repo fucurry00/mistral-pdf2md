@@ -10,10 +10,11 @@ Output ONLY the three sections below in Markdown. No greetings, explanations, su
 
 A table mapping every symbol defined or used in the document to its meaning. Include scope and first occurrence when applicable.
 
-| Symbol | Meaning | Scope | First seen |
-| --- | --- | --- | --- |
-| $G$ | group | Ch.1-5 | §1.1 |
-| ... | ... | ... | ... |
+| Symbol        | Meaning       | Scope  | First seen |
+| ------------- | ------------- | ------ | ---------- |
+| $G$           | group         | Ch.1-5 | §1.1       |
+| $\mathcal{H}$ | Hilbert space | Ch.2-5 | §2.3       |
+| ...           | ...           | ...    | ...        |
 
 ## Structure Outline
 

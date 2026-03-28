@@ -17,3 +17,6 @@ wheels/
 
 # OCR output
 output/
+
+# Agent session data
+SESSION.md
