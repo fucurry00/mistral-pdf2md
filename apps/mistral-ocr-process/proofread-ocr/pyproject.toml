@@ -1,0 +1,24 @@
+[project]
+name = "proofread-ocr"
+version = "0.1.0"
+description = "LLM-based OCR proofreading pipeline using Gemini CLI"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+proofread-ocr = "proofread_ocr.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/proofread_ocr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

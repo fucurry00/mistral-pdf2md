@@ -1,0 +1,41 @@
+{
+  "name": "proofread-ocr",
+  "description": "Evaluation test cases for OCR proofreading pipeline",
+  "test_cases": [
+    {
+      "id": "ocr_rn_to_m",
+      "description": "OCR misread 'rn' as 'm' in mathematical terms",
+      "input": "homornorphism",
+      "expected": "homomorphism",
+      "type": "FIXED"
+    },
+    {
+      "id": "ocr_1_to_l",
+      "description": "OCR misread 'l' as '1' in words",
+      "input": "Bore1 measurable",
+      "expected": "Borel measurable",
+      "type": "FIXED"
+    },
+    {
+      "id": "latex_space_in_text",
+      "description": "OCR inserted spaces inside \\text{} command",
+      "input": "\\text{f o r a l l}",
+      "expected": "\\text{for all}",
+      "type": "FIXED"
+    },
+    {
+      "id": "cross_reference",
+      "description": "Cross-reference with wrong number",
+      "input": "See Thearem 3.2",
+      "expected": "See Theorem 3.2",
+      "type": "FIXED"
+    },
+    {
+      "id": "whitelist_preserve",
+      "description": "Whitelisted term should not be modified",
+      "input": "a.e.",
+      "expected": "a.e.",
+      "type": "NO_CHANGE"
+    }
+  ]
+}
