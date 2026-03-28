@@ -1,0 +1,717 @@
+# Chapter 3: Signed Measures and Differentiation
+
+## 3.1 Signed Measures
+
+**Definition.** Let $(X, \mathcal{M})$ be a measurable space. A **signed measure** on $(X, \mathcal{M})$ is a function
+
+$$
+\nu : \mathcal{M} \to [-\infty, \infty) \text{ or } (-\infty, \infty]
+$$
+
+such that
+(i) $\nu(\emptyset) = 0$ and
+(ii) if $E_1, E_2, \dots$ are disjoint sets in $\mathcal{M}$, then $\nu\left(\bigcup_{j=1}^{\infty} E_j\right) = \sum_{j=1}^{\infty} \nu(E_j)$.
+
+**3.1 Proposition.** Let $\nu$ be a signed measure on $(X, \mathcal{M})$. Suppose $E_1, E_2, \dots \in \mathcal{M}$.
+(i) If $E_1 \subset E_2 \subset \cdots$, then $\nu\left(\bigcup_{j=1}^{\infty} E_j\right) = \lim_{j \to \infty} \nu(E_j)$.
+(ii) If $E_1 \supset E_2 \supset \cdots$ and $|\nu(E_1)| < \infty$, then $\nu\left(\bigcap_{j=1}^{\infty} E_j\right) = \lim_{j \to \infty} \nu(E_j)$.
+
+**Definition.** If $\nu$ is a signed measure on $(X, \mathcal{M})$, a set $E \in \mathcal{M}$ is called **positive** if $\nu(F) \geq 0$ for all $F \in \mathcal{M}$ with $F \subset E$; **negative** if $\nu(F) \leq 0$ for all $F \in \mathcal{M}$ with $F \subset E$; and **null** if $\nu(F) = 0$ for all $F \in \mathcal{M}$ with $F \subset E$.
+
+**3.2 Lemma.** Any measurable subset of a positive set is positive. The union of any countable family of positive sets is positive.
+
+**3.3 The Hahn Decomposition Theorem.** Let $\nu$ be a signed measure on $(X, \mathcal{M})$. Then there exists a positive set $P$ and negative set $N$ such that $P \cup N = X$ and $P \cap N = \emptyset$. If $P'$ and $N'$ is another such pair, then $P \triangle P'$ (which equals $N \triangle N'$) is null for $\nu$.
+
+**Proof.**
+
+(i) WLOG, we assume $\nu(E) \in [-\infty, \infty)$ for all $E \in \mathcal{M}$. Let
+
+$$
+m = \sup \{\nu(E) : E \text{ is a positive set}\}.
+$$
+
+Choose a sequence $\{P_j\}$ of positive sets such that $\lim_{j \to \infty} \nu(P_j) = m$. Let
+
+$$
+P = \bigcup_{j=1}^{\infty} P_j.
+$$
+
+Then $P$ is a positive set such that $\nu(P) = m$. Note $m < \infty$.
+
+(ii) Let $N = X \setminus P$. We will show that $N$ is negative by contradiction. Suppose that $N$ is not negative.
+
+*   (a) If $E \subset N$, then $E$ is not non-null positive.
+    *   If $E$ is non-null positive, then $P \cup E$ is positive and $\nu(P \cup E) > m$.
+*   (b) Since $N$ is not negative, there is $A \subset N$ such that $\nu(A) > 0$. Note that, if $A \subset N$ and $\nu(A) > 0$, then there is $B \subset A$ such that $\nu(B) > \nu(A)$.
+    *   Since $\nu(A) > 0$ and $A$ is not positive, there is $C \subset A$ such that $\nu(C) < 0$. Let $B = A \setminus C$. Then $\nu(B) > \nu(A)$.
+*   (c) Let $n_1 = \inf \{n \in \mathbb{N} : \nu(B) > \frac{1}{n} \text{ for some } B \subset N\}$. Choose $A_1 \subset N$ such that $\nu(A_1) > \frac{1}{n_1}$.
+    Let $n_2 = \inf \{n \in \mathbb{N} : \nu(B) > \nu(A_1) + \frac{1}{n} \text{ for some } B \subset A_1\}$. Choose $A_2 \subset A_1$ such that $\nu(A_2) > \nu(A_1) + \frac{1}{n_2}$.
+    Let $n_3 = \inf \{n \in \mathbb{N} : \nu(B) > \nu(A_2) + \frac{1}{n} \text{ for some } B \subset A_2\}$. Choose $A_3 \subset A_2$ such that $\nu(A_3) > \nu(A_2) + \frac{1}{n_3}$.
+    $$\vdots$$
+    Let $A = \bigcap_{j=1}^{\infty} A_j$. Then $\nu(A) = \lim_{j \to \infty} \nu(A_j) \geq \sum_{j=1}^{\infty} \frac{1}{n_j}$. Since $\nu(A) < \infty$, $\lim_{j \to \infty} n_j = \infty$. Note that there is $B \subset A$ such that $\nu(B) > \nu(A)$. Hence $\nu(B) > \nu(A) > \nu(A_j)$ for all $j$. This implies $\{n_j\}$ is bounded, which is a contradiction.
+
+We have proved that there exists a pair $P$ and $N$ such that $P$ is positive, $N$ is negative, $P \cup N = X$, and $P \cap N = \emptyset$.
+
+Suppose that $(P', N')$ is another such pair. Since $P \setminus P' \subset P \cap N'$, $P \setminus P'$ is null. Similarly, since $P' \setminus P \subset P' \cap N$, $P' \setminus P$ is null.
+
+**Definition.** The decomposition $X = P \cup N$ of $X$ as the disjoint union of a positive set $P$ and a negative set $N$ is called a Hahn decomposition for $\nu$.
+
+**Definition.** Two signed measures $\mu$ and $\nu$ on $(X, \mathcal{M})$ are said to be mutually singular ($\mu$ is singular with respect to $\nu$, or vice versa) if there exists $E, F \in \mathcal{M}$ such that
+
+$$
+E \cup F = X \quad \text{and} \quad E \cap F = \emptyset,
+$$
+
+where $E$ is null for $\nu$ and $F$ is null for $\mu$. This is symbolically expressed as $\mu \perp \nu$.
+
+**3.4 The Jordan decomposition theorem.** If $\nu$ is a signed measure, there exist unique positive and negative measures $\nu^{+}$ and $\nu^{-}$ such that
+$$
+\nu = \nu^{+} - \nu^{-} \quad \text{and} \quad \nu^{+} \perp \nu^{-}.
+$$
+
+**Proof.** 
+**Existence**: Let $X = P \cup N$ be a Hahn decomposition. Define
+$$
+\nu^{+}(E) = \nu(E \cap P) \quad \text{and} \quad \nu^{-}(E) = -\nu(E \cap N).
+$$
+Then
+$$
+\nu = \nu^{+} - \nu^{-} \quad \text{and} \quad \nu^{+} \perp \nu^{-}.
+$$
+
+**Uniqueness**: Suppose $\nu = \mu^{+} - \mu^{-}$, where $\mu^{+} \perp \mu^{-}$. Let $E, F \in \mathcal{M}$ such that $\mu^{+}(F) = \mu^{-}(E) = 0$, $E \cup F = X$, and $E \cap F = \emptyset$. Then $X = E \cup F$ is a Hahn decomposition for $\nu$, and $P \triangle E$ (which is equal to $N \triangle F$) is null for $\nu$. Hence
+$$
+\mu^{+}(A) = \nu(A \cap E) = \nu^{+}(A) \quad \text{for all } A \in \mathcal{M}.
+$$
+
+**Definition.** Let $\nu = \nu^{+} - \nu^{-}$ be the Jordan decomposition of $\nu$. The total variation of $\nu$ is the positive measure $|\nu|$ defined by
+$$
+|\nu| = \nu^{+} + \nu^{-}.
+$$
+
+# 3.2 The Lebesgue-Radon-Nikodym Theorem
+
+Suppose that $\nu$ is a signed measure and $\mu$ is a positive measure on $(X, \mathcal{M})$. We say that $\nu$ is *absolutely continuous* with respect to $\mu$ and write
+$$
+\nu \ll \mu
+$$
+if $\nu(E) = 0$ for all $E \in \mathcal{M}$ with $\mu(E) = 0$.
+
+**3.5 Theorem.** Let $\nu$ be a finite signed measure and $\mu$ a positive measure on $(X, \mathcal{M})$. Then $\nu \ll \mu$ iff for every $\varepsilon > 0$, there exists $\delta > 0$ such that
+$$
+|\nu(E)| < \varepsilon \text{ whenever } \mu(E) < \delta.
+$$
+
+**Proof.** Note:
+i) $\nu \ll \mu$ iff $|\nu| \ll \mu$.
+ii) $|\nu(E)| \leq |\nu|(E)$ for all $E \in \mathcal{M}$.
+
+WLOG, assume $\nu$ is a positive measure.
+
+$(\Leftarrow)$ Trivial.
+
+$(\Rightarrow)$ Suppose that there exists $\varepsilon > 0$ such that for every $\delta > 0$, there exists $E \in \mathcal{M}$ with $\mu(E) < \delta$ and $\nu(E) \geq \varepsilon$. For $n = 1, 2, \dots$, choose $E_n \in \mathcal{M}$ such that
+$$
+\mu(E_n) < \frac{1}{2^n} \quad \text{and} \quad \nu(E_n) \geq \varepsilon.
+$$
+Let $F = \bigcap_{n=1}^{\infty} \bigcup_{k=n}^{\infty} E_k$. Then $\mu(F) \leq \sum_{k=n}^{\infty} \mu(E_k) < 2^{-(n-1)}$ for all $n$, so $\mu(F) = 0$. However, since $\nu$ is a finite measure, $\nu(F) = \lim_{n \to \infty} \nu(\bigcup_{k=n}^{\infty} E_k) \geq \limsup \nu(E_n) \geq \varepsilon$, which contradicts $\nu \ll \mu$.
+
+**Corollary 3.6.** If $f \in L^{1}(\mu)$, then for every $\varepsilon > 0$, there exists $\delta > 0$ such that $|\int_{E} f \, d\mu| < \varepsilon$ whenever $\mu(E) < \delta$.
+
+**Proof.** Let $\nu$ be defined by
+$$ \nu(E) = \int_{E} f \, d\mu. $$
+Apply Theorem 3.5.
+
+**Notation.** If $\nu(E) = \int_{E} f \, d\mu$ for all $E \in \mathcal{M}$, we write
+$$ d\nu = f \, d\mu. $$
+
+---
+
+**Lemma 3.7.** Let $\nu$ and $\mu$ be finite measures on $(X, \mathcal{M})$. If $\nu$ and $\mu$ are not mutually singular, then there exist $\varepsilon > 0$ and $E \in \mathcal{M}$ such that
+$$ \mu(E) > 0 \quad \text{and} \quad \nu \geq \varepsilon \mu \text{ on } E. $$
+
+**Proof.** Let $X = P_{n} \cup N_{n}$ be a Hahn decomposition for $\nu - \frac{1}{n}\mu$. Let
+$$ P = \bigcup_{n=1}^{\infty} P_{n} \quad \text{and} \quad N = \bigcap_{n=1}^{\infty} N_{n}. $$
+Then $N$ is a negative set for $\nu - \frac{1}{n}\mu$ for all $n$, i.e.,
+$$ 0 \leq \nu(N) \leq \frac{1}{n}\mu(N) \text{ for all } n. $$
+Hence $\nu(N) = 0$. Since $\mu$ and $\nu$ are not mutually singular, $\mu(P) > 0$. It follows that there exists some $n$ such that $\mu(P_n) > 0$. Note that $P_n$ is a positive set for $\nu - \frac{1}{n}\mu$.
+
+---
+
+**Theorem 3.8 (The Lebesgue-Radon-Nikodym Theorem).** Let $\nu$ be a $\sigma$-finite signed measure and $\mu$ a $\sigma$-finite positive measure on $(X, \mathcal{M})$. Then, there exist unique $\sigma$-finite signed measures $\lambda$ and $\rho$ on $(X, \mathcal{M})$ such that
+$$ \nu = \lambda + \rho, \quad \lambda \perp \mu, \quad \text{and} \quad \rho \ll \mu. $$
+Moreover, there exists an extended $\mu$-integrable function $f: X \to \mathbb{R}$ such that $d\rho = f \, d\mu$, and any two such functions are equal $\mu$-a.e.
+
+**Remark.**
+i) The decomposition $\nu = \lambda + \rho$ with $\lambda \perp \mu$ and $\rho \ll \mu$ is called the *Lebesgue decomposition* of $\nu$ w.r.t. $\mu$.
+ii) If $\nu \ll \mu$, then $d\nu = f \, d\mu$ for some $f$. This is the *Radon-Nikodym theorem*. If $d\nu = f \, d\mu$, then $f$ is called the *Radon-Nikodym derivative* of $\nu$ w.r.t. $\mu$, written as $f = \frac{d\nu}{d\mu}$. Hence,
+$$ d\nu = \frac{d\nu}{d\mu} d\mu. $$
+
+---
+
+# Proof of the Lebesgue-Radon-Nikodym Theorem (Theorem 3.8)
+
+**Step I.** Suppose $\nu$ and $\mu$ are finite positive measures. Let
+$$ \mathcal{F} = \left\{ f: X \to [0, \infty] : \int_{E} f \, d\mu \leq \nu(E) \text{ for all } E \in \mathcal{M} \right\}. $$
+Note that:
+i) $\mathcal{F}$ is not empty (since $0 \in \mathcal{F}$).
+ii) If $f, g \in \mathcal{F}$, then $\max\{f, g\} \in \mathcal{F}$.
+
+Let $a = \sup \left\{ \int f \, d\mu : f \in \mathcal{F} \right\}$. Then $a \leq \nu(X) < \infty$. Choose a sequence $f_n \in \mathcal{F}$ such that $\int f_n \, d\mu \to a$. Let
+$$ f = \sup_{n} f_n = \lim_{n \to \infty} \max\{f_1, \dots, f_n\}. $$
+Then $f \in \mathcal{F}$ and $\int f \, d\mu = a$.
+
+Let $d\lambda = d\nu - f \, d\mu$ (note $\lambda$ is positive since $f \in \mathcal{F}$). We claim $\lambda \perp \mu$.
+If $\lambda$ and $\mu$ are not mutually singular, then by Lemma 3.7, there exist $E \in \mathcal{M}$ and $\epsilon > 0$ such that
+$$ \mu(E) > 0 \quad \text{and} \quad \lambda \geq \epsilon \mu \text{ on } E. $$
+Hence
+$$ d\lambda \geq \epsilon \chi_E \, d\mu, \quad \text{i.e.,} \quad d\nu \geq (f + \epsilon \chi_E) \, d\mu. $$
+This implies $\int (f + \epsilon \chi_E) \, d\mu = a + \epsilon \mu(E) > a$, which contradicts the definition of $a$.
+Uniqueness can be easily proved.
+
+**Step II.** Suppose that $\mu$ and $\nu$ are $\sigma$-finite measures. Write $X = \bigcup X_j$ where $\mu(X_j) < \infty$ and $\nu(X_j) < \infty$.
+
+**Step III.** For a general $\sigma$-finite signed measure $\nu$, use the Jordan decomposition $\nu = \nu^{+} - \nu^{-}$.
+
+**3.9 Proposition.**  
+a. Let $\nu$ be a $\sigma$-finite signed measure and $\mu$ a $\sigma$-finite measure on $(X, \mathcal{M})$. If $\nu \ll \mu$ and $g \in L^{1}(\nu)$, then $g \frac{d\nu}{d\mu} \in L^{1}(\mu)$ and
+$$
+\int g \, d\nu = \int g \frac{d\nu}{d\mu} \, d\mu.
+$$
+
+b. Let $\nu$ be a $\sigma$-finite signed measure, and $\mu$ and $\lambda$ $\sigma$-finite measures on $(X, \mathcal{M})$. If $\nu \ll \mu$ and $\mu \ll \lambda$, then $\nu \ll \lambda$ and
+$$
+\frac{d\nu}{d\lambda} = \frac{d\nu}{d\mu} \frac{d\mu}{d\lambda}.
+$$
+
+**Proof.**  
+a. By considering $\nu^{+}$ and $\nu^{-}$ separately, we may assume that $\nu \geq 0$. We can prove the identity $\int g \, d\nu = \int g \frac{d\nu}{d\mu} \, d\mu$ for $g = \chi_E$, then for simple functions $g$, then for $g \in L^{+}(X)$, and finally for $g \in L^{1}(\nu)$.
+
+b. For any extended $\mu$-integrable function $h: X \to [-\infty, \infty]$, we have
+$$
+\int h \, d\mu = \int h \frac{d\mu}{d\lambda} \, d\lambda.
+$$
+Hence, for any $E \in \mathcal{M}$,
+$$
+\nu(E) = \int_{E} \frac{d\nu}{d\mu} \, d\mu = \int \chi_{E} \frac{d\nu}{d\mu} \, d\mu = \int \chi_{E} \frac{d\nu}{d\mu} \frac{d\mu}{d\lambda} \, d\lambda = \int_{E} \frac{d\nu}{d\mu} \frac{d\mu}{d\lambda} \, d\lambda.
+$$
+
+**3.10 Corollary.** If $\mu \ll \lambda$ and $\lambda \ll \mu$, then
+$$
+\frac{d\lambda}{d\mu} \frac{d\mu}{d\lambda} = 1 \quad \text{a.e. (w.r.t. either } \lambda \text{ or } \mu\text{)}.
+$$
+
+**3.11 Proposition.** If $\mu_1, \ldots, \mu_n$ are measures on $(X, \mathcal{M})$, then there is a measure $\mu$ such that $\mu_j \ll \mu$ for all $j = 1, \ldots, n$, namely, $\mu = \mu_1 + \cdots + \mu_n$.
+
+**Definition.** A complex measure on a measurable space $(X, \mathcal{M})$ is a map $\nu : \mathcal{M} \to \mathbb{C}$ such that:
+i) $\nu(\emptyset) = 0$
+ii) if $E_1, E_2, \ldots$ are disjoint sets in $\mathcal{M}$, then $\nu\left(\bigcup_{j=1}^{\infty} E_j\right) = \sum_{j=1}^{\infty} \nu(E_j)$.
+
+**3.12 The Lebesgue-Radon-Nikodym Theorem.**  
+If $\nu$ is a complex measure and $\mu$ is a $\sigma$-finite positive measure on $(X, \mathcal{M})$, there exists a complex measure $\lambda$ and $f \in L^{1}(\mu)$ such that
+$$
+d\nu = d\lambda + f \, d\mu \quad \text{and} \quad \lambda \perp \mu.
+$$
+If $d\nu = d\lambda' + f' \, d\mu$ and $\lambda' \perp \mu$, then $\lambda = \lambda'$ and $f = f' \,\, \mu$-a.e.
+
+**Definition.** The *total variation* of a complex measure $\nu$ is the positive measure $|\nu|$ determined by the property that, if $d\nu = f\,d\mu$ where $\mu$ is a positive measure, then
+$$
+d|\nu| = |f|\,d\mu.
+$$
+This is well defined.
+
+(i) **Existence.** Every complex measure $\nu$ is of the form $d\nu = f\,d\mu$ for some positive measure $\mu$ and $f \in L^{1}(\mu)$. Since $\nu = \nu_r + i\nu_i$, we can take $\mu = |\nu_r| + |\nu_i|$.
+
+(ii) **Uniqueness.** Suppose $d\nu = f_{1}\,d\mu_{1} = f_{2}\,d\mu_{2}$. Let $\rho = \mu_1 + \mu_2$. Then
+$$
+f_1 \frac{d\mu_1}{d\rho} d\rho = f_2 \frac{d\mu_2}{d\rho} d\rho.
+$$
+Thus
+$$
+|f_1| \frac{d\mu_1}{d\rho} = |f_2| \frac{d\mu_2}{d\rho}, \quad \rho\text{-a.e.}
+$$
+Hence
+$$
+|f_1| \, d\mu_1 = |f_2| \, d\mu_2.
+$$
+Thus, the definition of $|\nu|$ is independent of the choice of $\mu$ and $f$.
+
+(iii) **Consistency.** This definition agrees with the previous definition of $|\nu|$ when $\nu$ is a signed measure. In this case,
+$$
+d\nu = (\chi_P - \chi_N) d|\nu|,
+$$
+where $X = P \cup N$ is a Hahn decomposition. Note that $|\chi_P - \chi_N| = 1$.
+
+**3.13 Proposition.** Let $\nu$ be a complex measure on $(X, \mathcal{M})$.
+
+(a) $|\nu(E)| \leq |\nu|(E)$ for all $E \in \mathcal{M}$.
+
+(b) $\nu \ll |\nu|$, and $\left| \frac{d\nu}{d|\nu|} \right| = 1$, $|\nu|$\text{—a.e.}
+
+(c) $L^1(\nu) = L^1(|\nu|)$. If $f \in L^1(\nu)$, then
+$$
+\left| \int f \, d\nu \right| \leq \int |f| \, d|\nu|.
+$$
+
+**Proof.**
+
+(a) $|\nu(E)| = \left| \int_{E} f \, d\mu \right| \leq \int_{E} |f| \, d\mu = |\nu|(E)$.
+
+(b) By (a), $\nu \ll |\nu|$. If $d\nu = g \, d|\nu|$, then $d|\nu| = |g| \, d|\nu|$ by definition of $|\nu|$. Hence $|g| = 1$, $|\nu|$\text{—a.e.}
+
+(c) The proof of $L^1(\nu) = L^1(|\nu|)$ is omitted. We have
+$$
+\left| \int f \, d\nu \right| = \left| \int f \frac{d\nu}{d|\nu|} \, d|\nu| \right| \leq \int \left| f \frac{d\nu}{d|\nu|} \right| \, d|\nu| = \int |f| \, d|\nu|.
+$$
+
+**3.14 Proposition.** If $\nu_1$ and $\nu_2$ are complex measures on $(X, \mathcal{M})$, then $|\nu_1 + \nu_2| \leq |\nu_1| + |\nu_2|$.
+
+**Proof.** Suppose $d\nu_1 = f_1 \, d\mu$ and $d\nu_2 = f_2 \, d\mu$ (with the same $\mu$). Then,
+$$
+d(\nu_1 + \nu_2) = (f_1 + f_2) \, d\mu.
+$$
+Hence
+$$
+d|\nu_1 + \nu_2| = |f_1 + f_2| \, d\mu \leq (|f_1| + |f_2|) \, d\mu = |f_1| \, d\mu + |f_2| \, d\mu = d|\nu_1| + d|\nu_2|.
+$$
+
+**3.15 Lemma.** Let $\mathcal{C}$ be a collection of open balls in $\mathbb{R}^n$, and $U = \bigcup_{B \in \mathcal{C}} B$. If $c < m(U)$, there exist disjoint $B_1, \dots, B_k \in \mathcal{C}$ such that
+$$
+\sum_{j=1}^{k} m(B_j) > \frac{1}{3^n} c.
+$$
+
+**Proof.** If $c < m(U)$, there is a compact $K \subset U$ such that $c < m(K)$. Choose $A_1, \dots, A_m \in \mathcal{C}$ such that $\bigcup_{j=1}^{m} A_j \supset K$. Then $c < m(\bigcup_{j=1}^{m} A_j)$.
+
+Let $A_j = B(r_j, x_j)$ for $j = 1, \dots, m$, and assume $r_1 \geq r_2 \geq \cdots \geq r_m$. We select a subcollection of disjoint balls as follows: Let $i_1 = 1$,
+$$
+i_2 = \min\{j > i_1 : A_{i_1} \cap A_j = \emptyset\}
+$$
+$$
+i_3 = \min\{j > i_2 : (A_{i_1} \cup A_{i_2}) \cap A_j = \emptyset\}
+$$
+$$
+\vdots
+$$
+$$
+i_k = \min\{j > i_{k-1} : (A_{i_1} \cup \cdots \cup A_{i_{k-1}}) \cap A_j = \emptyset\},
+$$
+such that $(A_{i_1} \cup \cdots \cup A_{i_k}) \cap A_j \neq \emptyset$ for all $j > i_k$ that are not in the set $\{i_1, \dots, i_k\}$.
+
+We claim that
+$$
+\bigcup_{j=1}^{k} B(3r_{i_j}, x_{i_j}) \supset K, \quad (*)
+$$
+which proves the lemma, since $m(B(3r, x)) = 3^n m(B(r, x))$.
+
+Suppose that $(*)$ does not hold. Then there exists
+$$
+y \in \left( \bigcup_{j=1}^{m} B(r_j, x_j) \right) \setminus \left( \bigcup_{j=1}^{k} B(3r_{i_j}, x_{i_j}) \right).
+$$
+Suppose $y \in B(r_l, x_l) \setminus \bigcup_{j=1}^{k} B(3r_{i_j}, x_{i_j})$. Choose $\beta$ such that for $\alpha = 1, \dots, k$,
+$$
+r_{i_\alpha} \geq r_l \quad \text{if and only if} \quad \alpha \leq \beta.
+$$
+Since $y \in B(r_l, x_l)$ and $y \notin \bigcup_{j=1}^{\beta} B(3r_{i_j}, x_{i_j})$, we must have $B(r_{i_j}, x_{i_j}) \cap B(r_l, x_l) = \emptyset$ for all $j \leq \beta$. (Otherwise, if $B(r_l, x_l) \cap B(r_{i_j}, x_{i_j}) \neq \emptyset$ and $r_{i_j} \geq r_l$, then $B(r_l, x_l) \subset B(3r_{i_j}, x_{i_j})$).
+
+However, if $B(r_l, x_l)$ is disjoint from $B(r_{i_1}, x_{i_1}) \cup \dots \cup B(r_{i_\beta}, x_{i_\beta})$, and $r_l$ is the largest remaining radius, $l$ would have been chosen as the next index $i_{\beta+1}$ (or some index smaller than or equal to $l$ would have been chosen). We have either $\beta = k$ or $r_{\beta+1} < r_l$, which leads to a contradiction with the construction of the sequence $\{i_j\}$.
+
+**Definition.** A measurable function $f: \mathbb{R}^n \to \mathbb{C}$ is called **locally integrable** (w.r.t. the Lebesgue measure) if
+$$
+\int_{K} |f(x)| \, dx < \infty \quad \text{for all compact sets } K \subset \mathbb{R}^n.
+$$
+Denote the space of locally integrable functions by $L_{loc}^1$. For $f \in L_{loc}^1$, $x \in \mathbb{R}^n$, and $r > 0$, we define the average of $f$ over the ball $B(r, x)$ as:
+$$
+(A_r f)(x) = \frac{1}{m(B(r, x))} \int_{B(r, x)} f(y) \, dy.
+$$
+
+**3.16 Lemma.** If $f \in L_{loc}^1$, then $(A_r f)(x)$ is jointly continuous in $r$ and $x$ for $r > 0, x \in \mathbb{R}^n$.
+
+**Proof.** Note that $m(S(r, x)) = 0$, where $S(r, x) = \{y \in \mathbb{R}^n : |y - x| = r\}$ is the boundary of the ball. The joint continuity then follows from the dominated convergence theorem, as the indicator functions $\chi_{B(r, x)}$ converge point-wise a.e. as $(r, x)$ varies.
+
+**Definition.** For $f \in L_{loc}^1$, the **Hardy-Littlewood maximal function** $Hf$ is defined by
+$$
+(Hf)(x) = \sup_{r > 0} (A_r |f|)(x).
+$$
+Note that $Hf$ is measurable, since the supremum over $r > 0$ is equivalent to the supremum over rational $r \in \mathbb{Q}, r > 0$ due to the continuity of $(A_r |f|)(x)$ in $r$:
+$$
+(Hf)(x) = \sup_{r \in \mathbb{Q}, r > 0} (A_r |f|)(x).
+$$
+
+**3.17 The Maximal Theorem.** For all $f \in L^1$ and all $\alpha > 0$,
+$$
+m(\{x : (Hf)(x) > \alpha\}) \leq \frac{3^n}{\alpha} \int |f(x)| \, dx.
+$$
+
+**Proof.** Let $E_\alpha = \{x : (Hf)(x) > \alpha\}$. For each $x \in E_\alpha$, choose $r_x > 0$ such that
+$$
+(A_{r_x} |f|)(x) > \alpha.
+$$
+Then the collection of balls $\mathcal{C} = \{B(r_x, x) : x \in E_\alpha\}$ covers $E_\alpha$. By Lemma 3.15, for each $c < m(E_\alpha)$, there exist $x_1, \dots, x_k \in E_\alpha$ such that the balls $B(r_{x_j}, x_j)$ for $j = 1, \dots, k$ are disjoint, and
+$$
+\sum_{j=1}^{k} m(B(r_{x_j}, x_j)) > \frac{c}{3^n}.
+$$
+Hence,
+$$
+\frac{c}{3^n} < \sum_{j=1}^{k} m(B(r_{x_j}, x_j)) \leq \sum_{j=1}^{k} \frac{1}{\alpha} \int_{B(r_{x_j}, x_j)} |f(y)| \, dy \leq \frac{1}{\alpha} \int_{\mathbb{R}^n} |f(y)| \, dy.
+$$
+Since $c < m(E_\alpha)$ is arbitrary, it follows that $m(E_\alpha) \leq \frac{3^n}{\alpha} \|f\|_1$.
+
+**3.18 Theorem.** If $f \in L_{loc}^{1}$, then $\lim_{r \to 0} (A_{r}f)(x) = f(x)$ for a.e. $x \in \mathbb{R}^n$.
+
+**Proof.** For $x \in \mathbb{R}^n$ with $|x| \leq N$,
+$$
+\lim_{r \to 0} (A_{r}f)(x) = f(x) \quad \text{iff} \quad \lim_{r \to 0} A_{r}(f \chi_{B(N+1,0)})(x) = (f \chi_{B(N+1,0)})(x).
+$$
+Therefore, WLOG, assume $f \in L^{1}$. Let $\epsilon > 0$. Choose a continuous function $g$ such that $\int |f(x) - g(x)| dx < \epsilon$. Note
+$$
+\begin{aligned}
+\limsup_{r \to 0} |A_{r}f(x) - f(x)| &= \limsup_{r \to 0} |A_{r}(f - g)(x) + (A_{r}g - g)(x) + (g - f)(x)| \\
+&\leq H(f - g)(x) + |f - g|(x).
+\end{aligned}
+$$
+Hence
+$$
+\begin{aligned}
+m \left(\left\{x: \limsup_{r \to 0} | A_{r} f(x) - f(x) | > \alpha \right\}\right) &\leq m \left(\left\{x: H(f - g)(x) > \frac{\alpha}{2} \right\}\right) + m \left(\left\{x: | f - g |(x) > \frac{\alpha}{2} \right\}\right) \\
+&\leq \frac{3^n}{\alpha / 2} \int | f - g | \, dx + \frac{1}{\alpha / 2} \int | f - g |(x) \, dx \\
+&< \frac{2 \cdot 3^n}{\alpha} \epsilon + \frac{2}{\alpha} \epsilon = \frac{2(3^n + 1)}{\alpha} \epsilon.
+\end{aligned}
+$$
+Since $\epsilon > 0$ is arbitrary, the measure of the set where the $\limsup > \alpha$ is zero for any $\alpha > 0$. Thus $\lim_{r \to 0} A_r f(x) = f(x)$ a.e.
+
+**Definition.** The Lebesgue set $L_f$ of $f$ is defined as
+$$
+L_f = \left\{ x : \lim_{r \to 0} \frac{1}{m(B(r, x))} \int_{B(r, x)} |f(y) - f(x)| \, dy = 0 \right\}.
+$$
+
+**3.20 Theorem.** If $f \in L_{loc}^{1}$, then $m((L_f)^c) = 0$.
+
+**Proof.** For any $c \in \mathbb{C}$, we have, for a.e. $x$,
+$$
+\lim_{r \to 0} \frac{1}{m(B(r, x))} \int_{B(r, x)} |f(y) - c| \, dy = |f(x) - c|. \tag{*}
+$$
+Let $D$ be a countable dense subset of $\mathbb{C}$. Then, for a.e. $x$, (*) holds for all $c \in D$. Suppose that $x$ satisfies (*) for all $c \in D$. Let $\epsilon > 0$. Choose $c \in D$ such that $|f(x) - c| < \epsilon$. Then
+$$
+\begin{aligned}
+\limsup_{r \to 0} \frac{1}{m(B(r, x))} \int_{B(r, x)} |f(y) - f(x)| \, dy &\leq \limsup_{r \to 0} \frac{1}{m(B(r, x))} \int_{B(r, x)} |f(y) - c| \, dy + |c - f(x)| \\
+&= |f(x) - c| + |c - f(x)| \\
+&< 2\epsilon.
+\end{aligned}
+$$
+Since $\epsilon > 0$ is arbitrary,
+$$
+\lim_{r \to 0} \frac{1}{m(B(r, x))} \int_{B(r, x)} |f(y) - f(x)| \, dy = 0.
+$$
+
+**Definition.** A family $\{E_r\}_{r > 0}$ of Borel subsets of $\mathbb{R}^n$ shrink nicely to $x \in \mathbb{R}^n$ if
+(i) $E_r \subset B(r, x)$ for each $r$, and
+(ii) there is a constant $\alpha > 0$, independent of $r$, such that $m(E_r) > \alpha m(B(r, x))$.
+
+**Theorem 3.21 (The Lebesgue differentiation theorem).** Let $f \in L_{loc}^{1}$. For every $x$ in the Lebesgue set of $f$,
+
+$$
+\lim_{r \to 0} \frac{1}{m(E_r)} \int_{E_r} |f(y) - f(x)| \, dy = 0
+$$
+
+for every family $\{E_r\}_{r > 0}$ that shrinks nicely to $x$.
+
+**Proof.** For $x \in L_f$,
+
+$$
+\begin{aligned}
+\frac{1}{m(E_r)} \int_{E_r} |f(y) - f(x)| \, dy &\leq \frac{1}{m(E_r)} \int_{B(r,x)} |f(y) - f(x)| \, dy \\
+&\leq \frac{1}{\alpha} \frac{1}{m(B(r,x))} \int_{B(r,x)} |f(y) - f(x)| \, dy \\
+&\to 0 \quad \text{as } r \to 0.
+\end{aligned}
+$$
+
+**Definition.** A Borel measure $\nu$ on $\mathbb{R}^n$ is called *regular* if:
+(i) $\nu(K) < \infty$ for all compact sets $K$.
+(ii) $\nu(E) = \sup \{\nu(K) : K \text{ is compact and } K \subset E\}$ for every $E \in \mathcal{B}_{\mathbb{R}^n}$.
+(iii) $\nu(E) = \inf \{\nu(U) : U \text{ is open and } E \subset U\}$ for every $E \in \mathcal{B}_{\mathbb{R}^n}$.
+
+A signed or complex Borel measure $\nu$ is called *regular* if $|\nu|$ is regular.
+
+**Remark.**
+(1) It is easy to show that (ii) follows from (i) and (iii).
+(2) In Section 7.2, it is proved that (i) implies (ii). (This fact is not used until Section 7.2.)
+(3) Every regular measure is $\sigma$-finite.
+(4) Recall that $L^{+}(\mathbb{R}^{n})$ is the space of all measurable functions from $\mathbb{R}^n$ to $[0, \infty]$. For $f \in L^{+}(\mathbb{R}^{n})$, $f \, dm$ is regular if and only if $f \in L_{loc}^{1}$.
+
+**Proof of (4).**
+$(\Rightarrow)$ Trivial.
+
+$(\Leftarrow)$ Suppose $f \in L_{loc}^{1}$. Then (i) holds. We will show (iii). Let $E$ be a Borel set, $\epsilon > 0$, and $K_j = \{x \in \mathbb{R}^n : \|x\| \leq j\}$. It suffices to show that there exist open sets $U_j$ such that
+
+$$
+\int_{U_j \setminus (E \cap K_j)} f 1_{K_j} \, dm < \frac{\epsilon}{2^j}. \tag{*}
+$$
+
+By Corollary 3.6, for every $\eta > 0$, there is $\delta > 0$ such that $\int_A f 1_{K_j} \, dm < \eta$ if $m(A) < \delta$. Thus, $(*)$ follows from the outer regularity of the Lebesgue measure.
+
+**Theorem 3.22.** Let $\nu$ be a regular signed or complex Borel measure on $\mathbb{R}^n$, and let $d\nu = d\lambda + f \, dm$ be its Lebesgue-Radon-Nikodym representation. Then, for $m$-a.e. $x \in \mathbb{R}^n$,
+
+$$
+\lim_{r \to 0^+} \frac{\nu(E_r)}{m(E_r)} = f(x)
+$$
+
+for every family $\{E_r\}_{r > 0}$ that shrinks nicely to $x$.
+
+**Proof.** Note $d|\nu| = d|\lambda| + |f| \, dm$, and the regularity of $\nu$ implies the regularity of $\lambda$ and $f \, dm$. Since $f \, dm$ is regular, $f \in L_{loc}^{1}$. By Theorem 3.21, it suffices to show the following: If $\lambda$ is regular, positive, and $\lambda \perp m$, then for $m$-a.e. $x$,
+
+$$
+\lim_{r \to 0} \frac{\lambda(B(r,x))}{m(B(r,x))} = 0.
+$$
+
+(This implies $\lim_{r \to 0} \frac{\lambda(E_r)}{m(E_r)} = 0$.)
+
+Decompose $\mathbb{R}^n = A \cup A^c$ so that $m$ lives in $A$ and $\lambda$ lives in $A^c$. For $\eta > 0$, let
+
+$$
+F = \left\{x \in A: \limsup_{r \to 0} \frac{\lambda(B(r, x))}{m(B(r, x))} > \eta \right\}.
+$$
+
+Since $\lambda(F) = 0$ and $\lambda$ is regular, there exists an open set $U$ such that $F \subset U$ and $\lambda(U) < \epsilon$. For each $x \in F$, choose $r_x > 0$ such that $B_x \equiv B(r_x, x) \subset U$ and $\frac{\lambda(B_x)}{m(B_x)} > \eta$. Note that
+
+$$
+F \subset V \equiv \bigcup_{x \in F} B_x \subset U.
+$$
+
+If $c < m(F)$, then by Lemma 3.15 (Vitali Covering Lemma), there exist disjoint $B_{x_1}, \dots, B_{x_J}$ such that
+
+$$
+\frac{c}{3^n} < \sum_{j=1}^{J} m(B_{x_j}) < \frac{1}{\eta} \sum_{j=1}^{J} \lambda(B_{x_j}) \leq \frac{1}{\eta} \lambda(U) < \frac{\epsilon}{\eta}.
+$$
+
+Hence, $m(F) = 0$.
+
+**3.23 Theorem.** Let $F: \mathbb{R} \to \mathbb{R}$ be increasing, and let $G(x) = F(x+)$.
+
+a. The set of points at which $F$ is discontinuous is countable.
+b. $F$ and $G$ are differentiable a.e., and $F' = G'$ a.e.
+
+**Proof.**
+(a) Since
+$$
+\sum_{|x| < N} (F(x+) - F(x-)) \leq F(N) - F(-N) < \infty,
+$$
+the set $\{x \in (-N, N) : F(x+) \neq F(x-)\}$ is countable. Thus, the set of discontinuity points of $F$,
+$$
+\{x \in \mathbb{R} : F(x+) \neq F(x-)\} = \bigcup_{N=1}^{\infty} \{x \in (-N, N) : F(x+) \neq F(x-)\}
+$$
+is countable.
+
+(b) Let $\mu_G$ be the Lebesgue-Stieltjes measure associated to $G$. By Theorem 1.18, $\mu_G$ is regular. Decompose $\mu_G$ as
+$$
+d\mu_G = d\lambda + f \, dm,
+$$
+where $\lambda \perp m$. Since
+$$
+G(x + h) - G(x) = \begin{cases} \mu_G((x, x + h]), & h > 0, \\ -\mu_G((x + h, x]), & h < 0, \end{cases}
+$$
+Theorem 3.22 implies
+$$
+G'(x) = \lim_{h \to 0} \frac{1}{h} (G(x + h) - G(x)) = f(x) \quad \text{for } m\text{-a.e. } x.
+$$
+
+Let $H(x) = G(x) - F(x)$. We will show that $H'(x)$ exists and equals zero a.e. Let $\{x_j\}$ be an enumeration of points at which $H \neq 0$. Then, $H(x_j) > 0$ and
+$$
+\sum_{j: |x_j| < N} H(x_j) < F(N) - F(-N) < \infty.
+$$
+Hence, the measure $\mu = \sum_{j=1}^{\infty} H(x_j) \delta_{x_j}$ is finite on every compact set. By Theorems 1.16 and 1.18, the measure $\mu$ is regular. Since $\mu \perp m$, by Theorem 3.22, for $m$-a.e. $x$,
+$$
+\limsup_{h \to 0} \left| \frac{H(x + h) - H(x)}{h} \right| \leq 4 \limsup_{h \to 0} \frac{\mu((x - 2|h|, x + 2|h|))}{4|h|} = 0.
+$$
+Therefore, $H'(x) = 0$ for $m$-a.e. $x$. Since $G' = F' + H'$, it follows that $F' = G'$ a.e.
+
+***
+
+# 3.5 Functions of Bounded Variation
+
+## Total Variation
+
+For a function $F: \mathbb{R} \to \mathbb{C}$, the *total variation function* of $F$ is defined by
+$$
+T_F(x) = \sup \left\{ \sum_{j=1}^{n} |F(x_j) - F(x_{j-1})| : -\infty < x_0 < x_1 < \cdots < x_n = x \right\}.
+$$
+The *total variation* of $F$ on $[a, b]$ is defined by
+$$
+T_F([a, b]) = \sup \left\{ \sum_{j=1}^{n} |F(x_j) - F(x_{j-1})| : a = x_0 < x_1 < \cdots < x_n = b \right\}.
+$$
+Note that, if $T_F(a) < \infty$, then $T_F([a, b]) = T_F(b) - T_F(a)$.
+
+We say that $F: \mathbb{R} \to \mathbb{C}$ is of **bounded variation** if $\lim_{x \to \infty} T_F(x) < \infty$. The space of all functions of bounded variation is denoted by $BV$.
+
+A function $F: [a, b] \to \mathbb{C}$ is of **bounded variation on $[a, b]$** if $T_F([a, b]) < \infty$. The space of all functions $F$ with $T_F([a, b]) < \infty$ is denoted by $BV([a, b])$.
+
+**Example 3.25.**
+
+a. If $F: \mathbb{R} \to \mathbb{R}$ is bounded and increasing, then $F \in BV$. Note that $T_F(x) = F(x) - F(-\infty)$ for such functions $F$.
+
+b. If $F, G \in BV$ and $a, b \in \mathbb{C}$, then $aF + bG \in BV$.
+
+c. Let
+$$
+F(x) = \begin{cases} x \sin \frac{1}{x} & \text{if } x \neq 0, \\ 0 & \text{if } x = 0. \end{cases}
+$$
+Then, $F \in BV([a, b])$ if and only if $0 \notin [a, b]$.
+
+**Lemma 3.26.** If $F \in BV$ is real valued, then $T_F + F$ and $T_F - F$ are increasing.
+
+**Proof.** If $a = x_0 < \dots < x_n = b$, then
+$$
+\sum_{j=1}^{n} |F(x_j) - F(x_{j-1})| \geq \sum_{j=1}^{n} (F(x_{j-1}) - F(x_j)) = F(a) - F(b).
+$$
+Hence,
+$$
+T_F(b) - T_F(a) \geq F(a) - F(b),
+$$
+ which implies $T_F(b) + F(b) \geq T_F(a) + F(a)$. A similar argument shows $T_F - F$ is increasing.
+
+---
+
+**Theorem 3.27.**
+a. $F \in BV$ if and only if $\operatorname{Re} F \in BV$ and $\operatorname{Im} F \in BV$.
+b. For a function $F: \mathbb{R} \to \mathbb{R}$, $F \in BV$ if and only if $F = F_1 - F_2$ for some bounded increasing functions $F_1$ and $F_2$. For $F \in BV$, the functions $F_1$ and $F_2$ can be taken to be
+$$
+F_1 = \frac{1}{2}(T_F + F) \quad \text{and} \quad F_2 = \frac{1}{2}(T_F - F).
+$$
+c. If $F \in BV$, then $F(x+) = \lim_{y \to x^+} F(y)$ and $F(x-)$ exist for all $x \in \mathbb{R}$. Also, $F(\infty) = \lim_{x \to \infty} F(x)$ and $F(-\infty) = \lim_{x \to -\infty} F(x)$ exist.
+d. If $F \in BV$, the set of discontinuity points of $F$ is countable.
+e. If $F \in BV$ and $G(x) = F(x+)$, then $F'$ and $G'$ exist and are equal a.e.
+
+---
+
+### Jordan Decomposition
+
+The representation
+$$
+F = \frac{1}{2}(T_F + F) - \frac{1}{2}(T_F - F)
+$$
+of a real-valued $F \in BV$ is called the **Jordan decomposition** of $F$, and $\frac{1}{2}(T_F + F)$ and $\frac{1}{2}(T_F - F)$ are called the positive and negative variations of $F$.
+
+**Remark.** We have
+$$
+\frac{1}{2}(T_F + F)(x) = \sup \left\{\sum_{j=1}^{n} (F(x_j) - F(x_{j-1}))^+ : x_0 < \dots < x_n = x \right\} + \frac{1}{2} F(-\infty),
+$$
+$$
+\frac{1}{2}(T_F - F)(x) = \sup \left\{\sum_{j=1}^{n} (F(x_j) - F(x_{j-1}))^- : x_0 < \dots < x_n = x \right\} - \frac{1}{2} F(-\infty).
+$$
+
+**Proof.** Note that
+$$
+\begin{aligned}
+(T_F(b) + F(b)) - (T_F(a) + F(a)) &= \sup \left\{\sum_{j=1}^{n} (|F(x_j) - F(x_{j-1})| + (F(x_j) - F(x_{j-1}))) : a = x_0 < \dots < x_n = b \right\} \\
+&= 2 \sup \left\{\sum_{j=1}^{n} (F(x_j) - F(x_{j-1}))^+ : a = x_0 < \dots < x_n = b \right\}.
+\end{aligned}
+$$
+
+---
+
+**Notation.** The space of the "normalized" functions of bounded variation, denoted by $NBV$, is
+$$
+NBV = \{F \in BV : F \text{ is right continuous and } F(-\infty) = 0\}.
+$$
+
+**Lemma 3.28.** Suppose $F \in BV$. Then, $T_F(-\infty) = 0$. If $F$ is right continuous, then $T_F$ is also right continuous.
+
+**Proof.** Omitted. (Easy)
+
+---
+
+**Theorem 3.29.**
+(i) If $\mu$ is a complex Borel measure on $\mathbb{R}$ and $F(x) = \mu((-\infty, x])$, then $F \in NBV$.
+(ii) Conversely, if $F \in NBV$, then there is a unique Borel measure $\mu_F$ such that $F(x) = \mu_F((-\infty, x])$. Moreover, $|\mu_F| = \mu_{T_F}$.
+
+**Proof.**
+(i) Note that $|\mu|$ is a finite measure. If $x_0 < x_1 < \dots < x_n$, then
+$$
+\sum_{j=1}^{n} |F(x_j) - F(x_{j-1})| \leq |\mu|((x_0, x_n]) \leq |\mu|(\mathbb{R}).
+$$
+Hence, $\sup \left\{\sum_{j=1}^{n} |F(x_j) - F(x_{j-1})| : x_0 < x_1 < \dots < x_n\right\} < \infty$. Thus, $F \in BV$. Furthermore, $F(-\infty) = 0$ and $F$ is right continuous. Hence, $F \in NBV$.
+
+(ii) Decompose $F$ as $F = (F_1^+ - F_1^-) + i(F_2^+ - F_2^-)$. By Theorem 1.16, we have the Lebesgue-Stieltjes measure $\mu$ associated with $F$. The uniqueness follows from the standard tool using $\pi$-systems. For the proof of $|\mu_F| = \mu_{T_F}$, see Exercise 21.
+
+**Exercise 21.** Let $\nu$ be a complex measure on $(X, \mathcal{M})$. For $E \in \mathcal{M}$, define
+
+$$
+\begin{aligned}
+\mu_1(E) &= \sup \left\{ \sum_{j=1}^{n} |\nu(E_j)| : E_1, \dots, E_n \text{ are disjoint, } E = \bigcup_{j=1}^{n} E_j \right\}, \\
+\mu_2(E) &= \sup \left\{ \sum_{j=1}^{\infty} |\nu(E_j)| : E_1, E_2, \dots \text{ are disjoint, } E = \bigcup_{j=1}^{\infty} E_j \right\}, \\
+\mu_3(E) &= \sup \left\{ \left| \int_E f \, d\nu \right| : |f| \leq 1 \right\}.
+\end{aligned}
+$$
+
+Then, $\mu_1 = \mu_2 = \mu_3 = |\nu|$.
+
+**Proof.** Clearly, $\mu_1 \leq \mu_2 \leq \mu_3$.
+
+(i) $\mu_3 \leq \mu_1$ (Approximate $f$ by simple functions.)
+
+(ii) $\mu_3 = |\nu|$, since
+
+$$
+\left| \int_E f \, d\nu \right| = \left| \int_E f \frac{d\nu}{d|\nu|} \, d|\nu| \right| \leq |\nu|(E) \quad \text{if } |f| \leq 1,
+$$
+
+and $\int_E f \, d\nu = |\nu|(E)$ if $f \frac{d\nu}{d|\nu|} = 1$.
+
+**Proposition 3.30.** If $F \in NBV$, then $F' \in L^1(m)$. Moreover, $\mu_F \perp m$ if and only if $F' = 0$ $\text{a.e.}$, and $\mu_F \ll m$ if and only if $F(x) = \int_{-\infty}^{x} F'(t) \, dt$.
+
+**Proof.** $\text{WLOG}$, assume that $F$ is real valued. Decompose $\mu_F$ as $d\mu_F = d\lambda + f \, dm$ and apply Theorem 3.22.
+
+**Definition.** 
+(i) $F: \mathbb{R} \to \mathbb{C}$ is **absolutely continuous** if, for every $\epsilon > 0$, there exists $\delta > 0$ such that $\sum_{j=1}^{n} |F(b_j) - F(a_j)| < \epsilon$ for every finite set of disjoint intervals $(a_1, b_1), \dots, (a_n, b_n)$ with $\sum_{j=1}^{n} (b_j - a_j) < \delta$.
+
+(ii) $F: [a, b] \to \mathbb{C}$ is **absolutely continuous** ($F$ is absolutely continuous on $[a, b]$) if, for every $\epsilon > 0$, there exists $\delta > 0$ such that $\sum_{j=1}^{n} |F(b_j) - F(a_j)| < \epsilon$ for every finite set of disjoint intervals $(a_1, b_1), \dots, (a_n, b_n)$ in $[a, b]$ with $\sum_{j=1}^{n} (b_j - a_j) < \delta$.
+
+**Proposition 3.32.** Let $F \in NBV$. Then, $F$ is absolutely continuous if and only if $\mu_F \ll m$.
+
+**Proof.** Note that: (i) $F$ is absolutely continuous if and only if $T_F$ is absolutely continuous; (ii) $\mu_F \ll m$ if and only if $|\mu_F| \ll m$. Furthermore, $|\mu_F| = \mu_{T_F}$ by Theorem 3.29. Therefore, the proposition can be restated as: $T_F$ is absolutely continuous if and only if $\mu_{T_F} \ll m$. $\text{WLOG}$, we can assume that $F$ is increasing.
+
+$(\Leftarrow)$ Let $\epsilon > 0$ be given. By Theorem 3.5, there exists $\delta > 0$ such that $\mu_F(E) < \epsilon$ if $m(E) < \delta$. Hence, if $(a_1, b_1), \dots, (a_k, b_k)$ are disjoint and $\sum_{j=1}^{k} (b_j - a_j) < \delta$, then
+$$
+\sum_{j=1}^{k} (F(b_j) - F(a_j)) = \sum_{j=1}^{k} \mu_F((a_j, b_j]) = \mu_F \left( \bigcup_{j=1}^{k} (a_j, b_j] \right) < \epsilon.
+$$
+
+$(\Rightarrow)$ Let $m(E) = 0$. For given $\epsilon > 0$, there is $\delta > 0$ such that $\sum_{j=1}^{k} (F(b_j) - F(a_j)) < \epsilon$ if $(a_1, b_1), \dots, (a_k, b_k)$ are disjoint and $\sum_{j=1}^{k} (b_j - a_j) < \delta$. Since the Lebesgue measure $m$ is regular, there is an open set $U$ such that $E \subset U$ and $m(U) < \delta$. Express $U$ as a countable union of disjoint intervals: $U = \bigcup_{j=1}^{\infty} (a_j, b_j)$. Then
+$$
+\mu_F(E) \leq \mu_F(U) = \lim_{k \to \infty} \mu_F \left( \bigcup_{j=1}^{k} (a_j, b_j) \right) \leq \lim_{k \to \infty} \sum_{j=1}^{k} (F(b_j) - F(a_j)) \leq \epsilon.
+$$
+
+**Corollary 3.33.** If $f \in L^1(m)$, then $F(x) = \int_{-\infty}^{x} f(t) \, dt$ is $NBV$ and absolutely continuous. Conversely, if $F \in NBV$ is absolutely continuous, then $F' \in L^1(m)$ and $F(x) = \int_{-\infty}^{x} F'(t) \, dt$.
+
+**Proof.** Apply Propositions 3.30 and 3.32.
+
+**Lemma 3.34.** If $F$ is absolutely continuous on $[a, b]$, then $F \in BV([a, b])$.
+
+**Proof.** There exists $\delta > 0$ such that, if $(a_1, b_1), \dots, (a_n, b_n)$ are disjoint intervals in $[a, b]$ with $\sum_{j=1}^{n} (b_j - a_j) < \delta$, then $\sum_{j=1}^{n} |F(b_j) - F(a_j)| < 1$.
+
+Let $a = x_0 < x_1 < \dots < x_k = b$ satisfy $x_j - x_{j-1} < \delta$ for $j = 1, \dots, k$. Then, $F$ is of bounded variation on $[x_{j-1}, x_j]$ for each $j = 1, \dots, k$. Hence, $F$ is of bounded variation on $[a, b]$.
+
+**Remark.** The Lemma can also be easily proved by using Proposition 3.32 and the Lebesgue-Radon-Nikodym Theorem (Theorem 3.12).
+
+**Theorem 3.35 (The Fundamental Theorem of Calculus for Lebesgue Integrals).** Let $-\infty < a < b < \infty$ and $F: [a, b] \to \mathbb{C}$. The following are equivalent:
+
+(a) $F$ is absolutely continuous on $[a, b]$.
+(b) $F(x) - F(a) = \int_{a}^{x} f(t) \, dt$ for some $f \in L^{1}([a, b], m)$.
+(c) $F$ is differentiable a.e. on $[a, b]$, $F' \in L^{1}([a, b], m)$ and $F(x) - F(a) = \int_{a}^{x} F'(t) \, dt$.
+
+**Proof.**
+$((c) \Rightarrow (b))$: Trivial.
+$((b) \Rightarrow (a))$: Corollary 3.33.
+$((a) \Rightarrow (c))$: Corollary 3.33 (with Lemma 3.34).
+
+**Definition.** A complex Borel measure $\mu$ on $\mathbb{R}^n$ is called *discrete* if $\mu = \sum_{j=1}^{\infty} c_j \delta_{x_j}$ for some $x_j \in \mathbb{R}^n$ and $c_j \in \mathbb{C}$. $\mu$ is called *continuous* if $\mu(\{x\}) = 0$ for all $x \in \mathbb{R}^n$.
+
+**Remark.** For any (regular) complex Borel measure $\mu$ on $\mathbb{R}^n$, let $\mu = \mu_s + \mu_{ac}$ be the Lebesgue decomposition. Furthermore, $\mu_s$ can be decomposed as $\mu_s = \mu_d + \mu_{sc}$. Hence, any (regular) complex Borel measure on $\mathbb{R}^n$ can be written uniquely as
+$$ \mu = \mu_d + \mu_{ac} + \mu_{sc}. $$
+
+**Theorem 3.36 (Integration by parts).** If $F, G \in NBV$ and at least one of them is continuous, then, for $-\infty < a < b < \infty$,
+$$ \int_{(a,b]} F \, dG + \int_{(a,b]} G \, dF = F(b)G(b) - F(a)G(a). $$
+
+**Proof.** WLOG, we assume that $F$ is increasing, and $G$ is continuous and increasing. Let $\Omega = \{(x, y) : a < x \leq y \leq b\}$. We use Fubini's theorem to compute $\mu_F \times \mu_G(\Omega)$ in two ways. First,
+$$ \begin{aligned} \mu_F \times \mu_G(\Omega) &= \int_{(a,b]} \int_{(a,y]} dF(x) \, dG(y) = \int_{(a,b]} [F(y) - F(a)] \, dG(y) \\ &= \int_{(a,b]} F \, dG - F(a)[G(b) - G(a)], \end{aligned} $$
+and second, since $G(x) = G(x-)$ by continuity,
+$$ \begin{aligned} \mu_F \times \mu_G(\Omega) &= \int_{(a,b]} \int_{[x,b]} dG(y) \, dF(x) = \int_{(a,b]} [G(b) - G(x)] \, dF(x) \\ &= G(b)[F(b) - F(a)] - \int_{(a,b]} G \, dF. \end{aligned} $$
+Subtracting these two expressions yields the desired result.
