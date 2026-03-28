@@ -101,17 +101,36 @@ def save_images(ocr_response, output_path, img_offset=0):
                     data = data.split(",", 1)[1]
                 img_bytes = base64.b64decode(data)
                 img_path = images_dir / f"img-{img_offset + count}.jpeg"
+                if img_path.exists():
+                    print(f"  Warning: overwriting existing image: {img_path}")
                 img_path.write_bytes(img_bytes)
                 print(f"  Saved image: {img_path} ({len(img_bytes) / 1024:.1f} KB)")
                 count += 1
     return count
 
 
-def load_progress(progress_path):
+def detect_img_offset(output_path: Path) -> int:
+    """Scan images/ dir to find the next available image index."""
+    images_dir = output_path.parent / "images"
+    if not images_dir.exists():
+        return 0
+    max_idx = -1
+    for f in images_dir.glob("img-*.jpeg"):
+        m = re.match(r"img-(\d+)\.jpeg$", f.name)
+        if m:
+            max_idx = max(max_idx, int(m.group(1)))
+    return max_idx + 1 if max_idx >= 0 else 0
+
+
+def load_progress(progress_path, output_path: Path):
     """Load saved progress from a previous interrupted run."""
     if progress_path.exists():
         return json.loads(progress_path.read_text())
-    return {"completed_chunks": [], "markdown_chunks": [], "img_offset": 0}
+    # No progress file — detect img_offset from existing images to avoid overwriting
+    img_offset = detect_img_offset(output_path)
+    if img_offset > 0:
+        print(f"  Detected {img_offset} existing images, starting from img-{img_offset}")
+    return {"completed_chunks": [], "markdown_chunks": [], "img_offset": img_offset}
 
 
 def save_progress(progress_path, state):
@@ -173,7 +192,7 @@ def convert_pdf_to_markdown(pdf_path, output_path, page_selection=None, chunk_si
     else:
         # Chunked processing with resume support
         chunks = [pages[i:i + chunk_size] for i in range(0, len(pages), chunk_size)]
-        state = load_progress(progress_path)
+        state = load_progress(progress_path, output_path)
 
         if state["completed_chunks"]:
             print(
@@ -278,7 +297,8 @@ def main():
         if args.dry_run:
             print(f"[dry-run] Found {len(pdf_files)} PDF file(s) in {input_path}:")
             for pdf in pdf_files:
-                md_path = out_dir / (pdf.stem + ".md")
+                pdf_out_dir = out_dir / pdf.stem
+                md_path = pdf_out_dir / f"{pdf.stem}.md"
                 status = "EXISTS" if md_path.exists() else "new"
                 print(f"  [{status:6}] {pdf.name}  →  {md_path}")
             return
@@ -293,7 +313,8 @@ def main():
         out_dir.mkdir(parents=True, exist_ok=True)
         errors = []
         for i, pdf in enumerate(pdf_files, 1):
-            md_path = out_dir / (pdf.stem + ".md")
+            pdf_out_dir = out_dir / pdf.stem
+            md_path = pdf_out_dir / f"{pdf.stem}.md"
             print(f"\n[{i}/{len(pdf_files)}] {pdf.name}")
             try:
                 convert_pdf_to_markdown(pdf, md_path, None, chunk_size, args.timeout)
