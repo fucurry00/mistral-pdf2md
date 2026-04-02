@@ -15,3 +15,24 @@
 - llmで校正させると余計なものが挟まる可能性？
   pdf → script → md → script → md-v1 → gemini → improve script　
   このように決定論的な修正スクリプトを既存のものと新たにllmによって発見されたものに分けることによって
+
+hooks
+pdfを判別して起動すればいいんちゃう？
+
+```
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | grep -Ei '\\.pdf$'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
