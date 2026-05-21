@@ -12,7 +12,7 @@ class PipelineConfig:
     input_path: Path
     output_path: Path
     workdir: Path = Path(".proofread")
-    model: str = "gemini-3-flash-preview"
+    model: str = "gemini-3.5-flash"
     chunk_size: int = 20000
     overlap_lines: int = 5
     concurrency: int = 10

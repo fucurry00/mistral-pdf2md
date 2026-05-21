@@ -1,4 +1,4 @@
-"""Async wrapper for the Gemini CLI."""
+"""Async wrapper for the Antigravity CLI (agy)."""
 
 from __future__ import annotations
 
@@ -25,6 +25,61 @@ class GeminiResponse:
 
 _MAX_RETRIES = 3
 _INITIAL_BACKOFF = 2.0
+
+
+def _parse_stream_json(raw: str) -> tuple[str, int | None, int | None]:
+    """Parse Antigravity CLI --output-format stream-json (NDJSON) output.
+
+    Each line is a JSON event. Accumulates text deltas and extracts token usage.
+    """
+    text_parts: list[str] = []
+    tokens_in: int | None = None
+    tokens_out: int | None = None
+
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+
+        event_type = event.get("type", "")
+
+        # Streaming text delta (Claude/Gemini streaming format)
+        if event_type == "content_block_delta":
+            delta = event.get("delta", {})
+            if delta.get("type") == "text_delta":
+                text_parts.append(delta.get("text", ""))
+        # Direct text / result events
+        elif event_type in ("text", "content", "message", "result", "done", "complete"):
+            for key in ("response", "text", "content", "output"):
+                val = event.get(key, "")
+                if val:
+                    text_parts.append(str(val))
+                    break
+        # Untyped event with response/text field
+        elif not event_type:
+            for key in ("response", "text", "content"):
+                val = event.get(key, "")
+                if val:
+                    text_parts.append(str(val))
+                    break
+
+        # Token usage (try multiple key conventions)
+        for usage_key in ("usage", "stats", "usageMetadata"):
+            usage = event.get(usage_key)
+            if isinstance(usage, dict):
+                if tokens_in is None:
+                    tokens_in = usage.get("input_tokens", usage.get("promptTokenCount"))
+                if tokens_out is None:
+                    tokens_out = usage.get("output_tokens", usage.get("candidatesTokenCount"))
+                break
+
+    return "".join(text_parts), tokens_in, tokens_out
 
 
 def _extract_response_fallback(raw: str) -> str | None:
@@ -105,13 +160,13 @@ def _read_and_concat_files(file_paths: list[Path]) -> str:
 async def run_gemini(
     file_paths: list[Path],
     prompt: str | None = None,
-    model: str = "gemini-3-flash-preview",
-    output_format: str = "json",
+    model: str = "gemini-3.5-flash",
+    output_format: str = "stream-json",
     timeout: int = 300,
 ) -> GeminiResponse:
-    """Run the Gemini CLI asynchronously with retry logic.
+    """Run the Antigravity CLI (agy) asynchronously with retry logic.
 
-    Uses stdin pipe pattern: cat files | gemini -p "prompt"
+    Uses stdin pipe pattern: cat files | agy -p "prompt"
     This is the recommended approach for non-interactive mode.
 
     Args:
@@ -119,19 +174,19 @@ async def run_gemini(
         prompt: Optional short prompt string passed via -p. If None,
                 the first file in file_paths is treated as the prompt.
         model: Gemini model name.
-        output_format: Output format (json recommended).
+        output_format: Output format (stream-json recommended).
         timeout: Timeout in seconds per attempt.
     """
     # Read all file contents and concatenate
     stdin_text = _read_and_concat_files(file_paths)
 
     # Build command
-    cmd = ["gemini"]
+    cmd = ["agy"]
     if prompt:
         cmd.extend(["-p", prompt])
     else:
         cmd.extend(["-p", "Process the following input:"])
-    cmd.extend(["--output-format", output_format, "-m", model])
+    cmd.extend(["--output-format", output_format, "--model", model])
 
     last_error = ""
     for attempt in range(_MAX_RETRIES):
@@ -175,7 +230,7 @@ async def run_gemini(
                     await asyncio.sleep(backoff)
                     continue
 
-            text, tokens_in, tokens_out = _parse_json_response(stdout_str)
+            text, tokens_in, tokens_out = _parse_stream_json(stdout_str)
 
             return GeminiResponse(
                 text=text,
@@ -191,7 +246,7 @@ async def run_gemini(
             return GeminiResponse(
                 text="",
                 raw_stdout="",
-                stderr="'gemini' CLI command not found. Install: https://github.com/google-gemini/gemini-cli",
+                stderr="'agy' CLI command not found. Install: https://github.com/google-gemini/adk-python",
                 returncode=-1,
                 duration_sec=0.0,
             )
@@ -236,8 +291,8 @@ def launch_tmux_session(
 
         cmd = (
             f"cat {prompt_path} {context_path} {chunk_path} "
-            f"| gemini -p 'Proofread the following OCR text per the instructions.' "
-            f"--output-format json -m {model} "
+            f"| agy -p 'Proofread the following OCR text per the instructions.' "
+            f"--output-format stream-json --model {model} "
             f"| tee {result_path}; "
             f"touch {done_marker}"
         )

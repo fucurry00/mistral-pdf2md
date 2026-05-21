@@ -49,8 +49,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="作業ディレクトリ（デフォルト: .proofread/）",
     )
     parser.add_argument(
-        "-m", "--model", default="gemini-3-flash-preview",
-        help="Geminiモデル（デフォルト: gemini-3-flash-preview）",
+        "-m", "--model", default="gemini-3.5-flash",
+        help="Geminiモデル（デフォルト: gemini-3.5-flash）",
     )
 
     # Phase selection
@@ -222,8 +222,8 @@ async def _run_pipeline(args: argparse.Namespace) -> None:
             print(f"\nGemini commands that would be executed:")
             for meta in manifest.chunks:
                 print(f"  cat {proofread_prompt} {context_path} {chunks_dir}/chunk_{meta.id}.md "
-                      f"| gemini -p 'Proofread the following OCR text per the instructions provided via stdin.' "
-                      f"--output-format json -m {config.model}")
+                      f"| agy -p 'Proofread the following OCR text per the instructions provided via stdin.' "
+                      f"--output-format stream-json --model {config.model}")
             return
 
         if phase == "chunk":
