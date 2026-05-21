@@ -15,7 +15,7 @@ class PipelineConfig:
     model: str = "gemini-3-flash-preview"
     chunk_size: int = 20000
     overlap_lines: int = 5
-    concurrency: int = 4
+    concurrency: int = 10
     timeout: int = 300
     phase: str | None = None
     skip_context_review: bool = False

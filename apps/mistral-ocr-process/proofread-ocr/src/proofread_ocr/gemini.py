@@ -27,16 +27,54 @@ _MAX_RETRIES = 3
 _INITIAL_BACKOFF = 2.0
 
 
+def _extract_response_fallback(raw: str) -> str | None:
+    """Extract 'response' field from malformed/truncated Gemini CLI JSON.
+
+    Gemini CLI --output-format json can produce truncated or invalid JSON
+    for long responses. This fallback uses string matching to extract the
+    response content and unescape JSON string escapes.
+    """
+    marker = '"response": "'
+    start = raw.find(marker)
+    if start < 0:
+        return None
+    start += len(marker)
+    # Try to find proper end of response value
+    end_markers = ['",\n  "stats"', '"\n}', '",\n}']
+    text = None
+    for em in end_markers:
+        pos = raw.rfind(em)
+        if pos > start:
+            text = raw[start:pos]
+            break
+    if text is None:
+        # Truncated JSON — take everything after marker to end
+        text = raw[start:].rstrip()
+    # Unescape JSON string escapes (order matters: \\\\ first)
+    text = text.replace('\\\\', '\x00')  # temp placeholder
+    text = text.replace('\\n', '\n')
+    text = text.replace('\\t', '\t')
+    text = text.replace('\\"', '"')
+    text = text.replace('\\/', '/')
+    text = text.replace('\x00', '\\')
+    return text
+
+
 def _parse_json_response(raw: str) -> tuple[str, int | None, int | None]:
     """Extract text content and token stats from Gemini JSON output.
 
     Gemini CLI with --output-format json returns a JSON object.
     We extract the response text and optional token usage.
+    Falls back to regex extraction if the JSON is malformed.
     """
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        # If JSON parsing fails, treat the entire stdout as plain text
+        # Gemini CLI can produce invalid JSON for long responses;
+        # try regex-based extraction as fallback
+        extracted = _extract_response_fallback(raw)
+        if extracted:
+            return extracted, None, None
         return raw, None, None
 
     # Gemini CLI JSON structure may vary; handle common shapes

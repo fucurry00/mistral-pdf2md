@@ -70,7 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # Execution options
-    parser.add_argument("--concurrency", type=int, default=4, help="並列度（デフォルト: 4）")
+    parser.add_argument("--concurrency", type=int, default=10, help="並列度（デフォルト: 10）")
     parser.add_argument("--timeout", type=int, default=300, help="チャンクあたりのタイムアウト秒（デフォルト: 300）")
     parser.add_argument("--skip-context-review", action="store_true", help="Phase 1後の人間レビューをスキップ")
     parser.add_argument("--debug", action="store_true", help="tmuxモードで実行")

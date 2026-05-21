@@ -253,6 +253,17 @@ def merge_results(
 
         if result and result.success and result.output_text:
             text = result.output_text
+            # Safety net: extract markdown from raw Gemini JSON if cached
+            # results still contain the unparsed CLI output
+            if text.lstrip().startswith('{') and '"response"' in text[:200]:
+                try:
+                    parsed = json.loads(text)
+                    text = parsed.get("response", text)
+                except json.JSONDecodeError:
+                    from .gemini import _extract_response_fallback
+                    extracted = _extract_response_fallback(text)
+                    if extracted:
+                        text = extracted
         else:
             # Fallback: use original chunk
             chunk_path = chunks_dir / f"chunk_{meta.id}.md"
