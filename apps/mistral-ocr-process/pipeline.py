@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PDF → Markdown 変換パイプライン（OCR → cleanup → Gemini分析）
+PDF → Markdown 変換パイプライン（OCR → cleanup → Gemini清書）
 
 単一ファイル:
     python pipeline.py <input.pdf> [output_dir] [options]
@@ -11,13 +11,12 @@ PDF → Markdown 変換パイプライン（OCR → cleanup → Gemini分析）
 実行ステップ:
     ocr      : Mistral OCR APIでPDF → Markdown変換
     cleanup  : OCRアーティファクトをクリーンアップ（--mode で選択）
-    analyze  : Gemini CLIで残存アーティファクトを検出してレポート生成
+    proofread: proofread-ocr（Gemini）でLLMベース清書
 
 出力ディレクトリ構造:
     {output_dir}/{stem}/
-      {stem}.md              # cleanup済みMarkdown
+      {stem}.md              # 清書済みMarkdown（proofread実行時は上書き）
       {stem}.md.bak          # cleanup前バックアップ
-      {stem}.analysis.md     # Gemini分析レポート
       images/                # 抽出画像
 """
 
@@ -26,32 +25,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-DEFAULT_STEPS = ["ocr", "cleanup", "analyze"]
-ALL_STEPS = ["ocr", "cleanup", "analyze"]
-
-_GEMINI_ANALYZE_PROMPT = """\
-以下のMarkdownファイルはPDFをOCRで変換したものです。
-残存するOCRアーティファクトを検出してレポートを作成してください。
-
-【出力形式】
-## 残存OCRアーティファクト分析レポート
-
-### 検出された問題
-各問題につき以下を記述してください:
-- 問題種別（例: ページ番号残存、ランニングヘッダー、LaTeXスペース崩れ等）
-- 件数（概算）
-- 具体的な箇所の例（前後の文脈付き）
-- 正規表現修正パターン案（Pythonのre構文）
-
-### 総評
-修正スクリプトへの追加を推奨するルールのサマリー
-
-【制約】
-- ドキュメントの内容は一切修正しないこと（報告のみ）
-- LaTeX数式（$...$、$$...$$）の誤検知に注意
-- 数学的に正しい記述をアーティファクトとして誤報告しないこと
-- 存在しない問題を作り出さないこと
-"""
+DEFAULT_STEPS = ["ocr", "cleanup", "proofread"]
+ALL_STEPS = ["ocr", "cleanup", "proofread"]
 
 
 def run_ocr(pdf_path: Path, md_path: Path, pages, chunk_size, timeout):
@@ -85,24 +60,25 @@ def run_cleanup(md_path: Path, mode: str, preset: str | None):
         print(result.stdout.rstrip())
 
 
-def run_analyze(md_path: Path, analysis_path: Path, timeout: int = 300):
-    """Step 3: Gemini CLIで残存アーティファクトを検出してレポートを生成。"""
-    content = md_path.read_text(encoding="utf-8")
-    prompt = _GEMINI_ANALYZE_PROMPT + "\n\n---\n\n" + content
+def run_proofread(md_path: Path, preset: str | None, timeout: int = 600):
+    """Step 3: proofread-ocr で Gemini 清書を実行。md_path を上書きする。"""
+    cmd = [
+        "uv", "run", "proofread-ocr",
+        str(md_path),
+        "-o", str(md_path),
+        "-w", str(md_path.parent / ".proofread"),
+        "--skip-context-review",
+    ]
+    if preset:
+        cmd += ["--preset", preset]
 
-    result = subprocess.run(
-        ["gemini", "--yolo", "-p", prompt],
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-    )
-    if result.returncode != 0 or not result.stdout.strip():
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    if result.returncode != 0:
         raise RuntimeError(
-            f"gemini-cli failed (exit {result.returncode}): {result.stderr.strip()}"
+            f"proofread-ocr failed (exit {result.returncode}):\n{result.stderr.strip()}"
         )
-
-    analysis_path.write_text(result.stdout, encoding="utf-8")
-    print(f"  Analysis report: {analysis_path}")
+    if result.stdout.strip():
+        print(result.stdout.rstrip())
 
 
 def process_single(
@@ -120,14 +96,13 @@ def process_single(
     stem = pdf_path.stem
     dest = output_dir / stem
     md_path = dest / f"{stem}.md"
-    analysis_path = dest / f"{stem}.analysis.md"
 
     if dry_run:
         statuses = []
         if "ocr" in steps:
             statuses.append(f"md={'EXISTS' if md_path.exists() else 'new'}")
-        if "analyze" in steps:
-            statuses.append(f"report={'EXISTS' if analysis_path.exists() else 'new'}")
+        if "proofread" in steps:
+            statuses.append("proofread=pending")
         print(f"  [dry-run] {pdf_path.name}  →  {dest}/  ({', '.join(statuses)})")
         return
 
@@ -154,18 +129,18 @@ def process_single(
     else:
         print("[Step 2/3] Cleanup: skipped")
 
-    if "analyze" in steps:
-        print("\n[Step 3/3] Gemini analysis...")
-        run_analyze(md_path, analysis_path)
+    if "proofread" in steps:
+        print("\n[Step 3/3] Gemini proofreading...")
+        run_proofread(md_path, preset)
     else:
-        print("[Step 3/3] Gemini analysis: skipped")
+        print("[Step 3/3] Proofreading: skipped")
 
     print(f"\n✓ Done: {md_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="PDF → Markdown パイプライン（OCR → cleanup → Gemini分析）",
+        description="PDF → Markdown パイプライン（OCR → cleanup → Gemini清書）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

@@ -2,7 +2,7 @@
 MCP Server: PDF → Markdown pipeline
 
 Tool: convert_pdf
-  OCR (Mistral) → Cleanup → [Gemini proofread] → output_dir/{stem}/
+  OCR (Mistral) → Cleanup → [proofread-ocr (Gemini)] → output_dir/{stem}/
 """
 
 import subprocess
@@ -13,12 +13,6 @@ from convert_pdf_to_markdown import convert_pdf_to_markdown
 from cleanup_ocr import clean, PRESETS
 
 mcp = FastMCP("pdf2md")
-
-_GEMINI_PROMPT = (
-    "以下の数学書Markdownを校正してください。"
-    "LaTeX数式（$...$、$$...$$）は絶対に変更しないこと。"
-    "Markdown構造を保持し、修正後のMarkdownのみを出力してください。"
-)
 
 
 @mcp.tool()
@@ -40,7 +34,7 @@ def convert_pdf(
         chunk_size: OCR APIのページ数/回（デフォルト20）
         pages: ページ選択 "1-5" or "1,3,5"（省略時は全ページ）
         timeout: Mistral APIタイムアウト秒（デフォルト120）
-        proofread: TrueでGemini CLIによる校正を実行（LaTeX書き換えリスクあり）
+        proofread: Trueでproofread-ocr（Gemini 4フェーズ清書）を実行
     """
     pdf = Path(pdf_path).resolve()
     if not pdf.exists():
@@ -79,23 +73,22 @@ def convert_pdf(
     md_path.write_text(cleaned, encoding="utf-8")
     steps_run.append("cleanup")
 
-    # Step 3: Gemini proofreading (optional)
+    # Step 3: proofread-ocr による Gemini 清書（optional）
     if proofread:
-        content = md_path.read_text(encoding="utf-8")
-        result = subprocess.run(
-            ["gemini", "--yolo", "-p", _GEMINI_PROMPT],
-            input=content,
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-        if result.returncode != 0 or not result.stdout.strip():
+        cmd = [
+            "uv", "run", "proofread-ocr",
+            str(md_path),
+            "-o", str(md_path),
+            "-w", str(dest_dir / ".proofread"),
+            "--skip-context-review",
+        ]
+        if preset:
+            cmd += ["--preset", preset]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        if result.returncode != 0:
             raise RuntimeError(
-                f"gemini-cli failed (exit {result.returncode}): {result.stderr.strip()}"
+                f"proofread-ocr failed (exit {result.returncode}): {result.stderr.strip()}"
             )
-        pre_bak = dest_dir / f"{stem}.pre_proofread.md.bak"
-        pre_bak.write_text(content, encoding="utf-8")
-        md_path.write_text(result.stdout, encoding="utf-8")
         steps_run.append("proofread")
 
     images_dir = dest_dir / "images"
@@ -106,6 +99,7 @@ def convert_pdf(
         "image_paths": image_paths,
         "steps_run": steps_run,
         "backup_path": str(bak_path),
+        "proofread_path": str(md_path) if proofread else None,
     }
 
 
