@@ -1,16 +1,14 @@
 # proofread-ocr
 
-LLM-based proofreading pipeline for OCR-converted Markdown documents, powered by Gemini CLI.
+LLM-based proofreading pipeline for OCR-converted Markdown documents, powered by Antigravity CLI (`agy`).
 
 Detects and corrects context-dependent OCR errors (character confusion, broken LaTeX, cross-reference mismatches) that rule-based cleanup scripts cannot handle.
-
-[日本語版 README](README.ja.md)
 
 ## Prerequisites
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli) v0.21.1+ (with Gemini 3 Flash access)
+- [Antigravity CLI](https://github.com/google-gemini/adk-python) (`agy`) with Gemini 3.5 Flash access
 - macOS (Apple Silicon) — tested environment
 
 ## Installation
@@ -26,7 +24,7 @@ uv sync
 # Full pipeline (all 4 phases)
 uv run proofread-ocr input.md
 
-# Dry run — preview chunk splits without calling Gemini
+# Dry run — preview chunk splits without calling agy
 uv run proofread-ocr input.md --dry-run --verbose
 ```
 
@@ -54,7 +52,7 @@ Splits the document at `##` / `###` heading boundaries into chunks of ~20,000 to
 
 ### Phase 3: Parallel Proofreading
 
-Each chunk is sent to Gemini CLI in parallel (`cat prompt context chunk | gemini -p ...`). Every correction is annotated:
+Each chunk is sent to Antigravity CLI in parallel (`cat prompt context chunk | agy -p ...`). Every correction is annotated:
 
 ```markdown
 homomorphism <!-- FIXED: homornorphism -> homomorphism | OCR: rn -> m -->
@@ -92,10 +90,10 @@ proofread-ocr input.md --phase merge      # Phase 4 only
 | --- | --- | --- |
 | `-o, --output <path>` | `{input}_proofread.md` | Output file path |
 | `-w, --workdir <path>` | `.proofread/` | Working directory for intermediate files |
-| `-m, --model <model>` | `gemini-3-flash-preview` | Gemini model |
+| `-m, --model <model>` | `gemini-3.5-flash` | Gemini model name |
 | `--chunk-size <tokens>` | `20000` | Max tokens per chunk |
 | `--overlap-lines <n>` | `5` | Overlap lines between chunks |
-| `--concurrency <n>` | `4` | Parallel Gemini invocations |
+| `--concurrency <n>` | `10` | Parallel agy invocations |
 | `--timeout <seconds>` | `300` | Timeout per chunk |
 | `--skip-context-review` | — | Skip human review of context.md |
 | `--context <path>` | — | Use existing context.md (skip Phase 1) |
@@ -105,6 +103,7 @@ proofread-ocr input.md --phase merge      # Phase 4 only
 | `--strip-annotations` | — | Remove FIXED/UNCERTAIN comments from output |
 | `--verbose` | — | Detailed progress logging |
 | `--prompt <path>` | — | Custom proofreading prompt |
+| `--preset <name>` | — | Book-specific preset (e.g. `dummit-foote`) |
 
 ### Examples
 
@@ -136,7 +135,7 @@ proofread-ocr/
 │   ├── chunker.py              # Phase 2: chunk splitting
 │   ├── proofreader.py          # Phase 3: parallel proofreading
 │   ├── merger.py               # Phase 4: merge + reports
-│   ├── gemini.py               # Async Gemini CLI wrapper
+│   ├── gemini.py               # Async Antigravity CLI (agy) wrapper
 │   └── models.py               # Data models (dataclasses)
 ├── tests/
 │   ├── test_chunker.py
@@ -157,4 +156,4 @@ uv run pytest tests/ -v
 - **Faithfulness first** — never alter the author's meaning; proofread, don't rewrite
 - **Transparency** — every fix is annotated with original text, correction, and reason
 - **Idempotency** — re-runnable with resume support; interrupted runs continue from where they stopped
-- **Zero external dependencies** — stdlib only (beyond Gemini CLI itself)
+- **Zero external dependencies** — stdlib only (beyond Antigravity CLI itself)

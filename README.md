@@ -1,38 +1,35 @@
-## 進行状態
+# mistral-pdf2md
 
-現在3段階で実装中。
+PDF → Markdown conversion pipeline using Mistral OCR and Gemini-based proofreading.
 
-1. mistral-ocrでmd化
-2. mdを成形 `./cleanup_ocr.py`
-3. llmで文脈を通して処理
-
-汎用化への道
-
-- gemini
-  並列に処理させるために、tmuxで管理？
-- scriptの合成
-  変換 → 成形を行う
-- llmで校正させると余計なものが挟まる可能性？
-  pdf → script → md → script → md-v1 → gemini → improve script　
-  このように決定論的な修正スクリプトを既存のものと新たにllmによって発見されたものに分けることによって
-
-hooks
-pdfを判別して起動すればいいんちゃう？
+## Architecture
 
 ```
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Read|Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '.tool_input.file_path // empty' | grep -Ei '\\.pdf$'"
-          }
-        ]
-      }
-    ]
-  }
-}
+PDF ──> Mistral OCR ──> Rule-based Cleanup ──> Gemini Proofread ──> Markdown
 ```
+
+### Apps
+
+| App | Description |
+| --- | --- |
+| `apps/mistral-ocr-process/` | Core pipeline: OCR → cleanup → proofread |
+| `apps/mcp-server/` | MCP server exposing the pipeline to Claude |
+
+## Quick Start
+
+```bash
+# Full pipeline (OCR → cleanup → proofread)
+cd apps/mistral-ocr-process
+python3 pipeline.py input.pdf output/
+
+# Via MCP (Claude integration)
+cd apps/mcp-server
+uv run python mcp_server.py
+```
+
+## Requirements
+
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/)
+- Mistral API key in `.env` (`MISTRAL_API_KEY=...`)
+- [Antigravity CLI](https://github.com/google-gemini/adk-python) (`agy`)
