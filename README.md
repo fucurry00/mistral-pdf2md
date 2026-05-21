@@ -20,11 +20,11 @@ PDF ──> Mistral OCR ──> Rule-based Cleanup ──> Gemini Proofread ─�
 ```bash
 # Full pipeline (OCR → cleanup → proofread)
 cd apps/mistral-ocr-process
-python3 pipeline.py input.pdf output/
+uv run pipeline input.pdf output/
 
 # Via MCP (Claude integration)
 cd apps/mcp-server
-uv run python mcp_server.py
+uv run pdf2md-mcp
 ```
 
 ## Requirements

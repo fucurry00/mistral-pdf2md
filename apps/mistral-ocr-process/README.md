@@ -28,17 +28,19 @@ All three stages are orchestrated by `pipeline.py`.
 ## Quick Start
 
 ```bash
+uv sync
+
 # Full pipeline: OCR → cleanup → proofread
-python3 pipeline.py input.pdf output/
+uv run pipeline input.pdf output/
 
 # OCR + cleanup only (skip proofreading)
-python3 pipeline.py input.pdf output/ --steps ocr,cleanup
+uv run pipeline input.pdf output/ --steps ocr,cleanup
 
 # Cleanup only
-python3 cleanup_ocr.py document.md
+uv run cleanup-ocr document.md
 
 # Run proofreading standalone
-cd proofread-ocr && uv run proofread-ocr ../output/document/document.md
+cd proofread-ocr && uv run proofread-ocr input.md
 ```
 
 ## Components
@@ -48,16 +50,16 @@ cd proofread-ocr && uv run proofread-ocr ../output/document/document.md
 Runs all 3 stages in sequence. Supports single file or batch directory processing.
 
 ```bash
-python3 pipeline.py input.pdf [output_dir] [options]
-python3 pipeline.py pdf_dir/ [output_dir]          # batch mode
+uv run pipeline input.pdf [output_dir] [options]
+uv run pipeline pdf_dir/ [output_dir]          # batch mode
 
 # Options
---mode math|general       # cleanup mode (default: math)
+--mode math|general            # cleanup mode (default: math)
 --steps ocr,cleanup,proofread  # select stages (default: all)
---preset dummit-foote     # book-specific header patterns
---pages "1-50"            # page selection (single file only)
---chunk-size 20           # pages per OCR API call (default: 20)
---dry-run                 # preview without processing
+--preset dummit-foote          # book-specific header patterns
+--pages "1-50"                 # page selection (single file only)
+--chunk-size 20                # pages per OCR API call (default: 20)
+--dry-run                      # preview without processing
 ```
 
 Output structure:
@@ -74,11 +76,9 @@ output/{stem}/
 Converts PDF to Markdown via the Mistral OCR API. Supports page selection, chunked processing for large files, and resume from interruption (`.progress.json`).
 
 ```bash
-python3 convert_pdf_to_markdown.py input.pdf -o output.md
-python3 convert_pdf_to_markdown.py input.pdf -o output.md --pages "1-10"
+uv run convert-pdf input.pdf -o output.md
+uv run convert-pdf input.pdf -o output.md --pages "1-10"
 ```
-
-Requires: `mistralai`, `pypdf`, `python-dotenv`
 
 ### `cleanup_ocr.py` — Rule-based Cleanup
 
@@ -89,11 +89,11 @@ Regex-based cleanup with two modes:
 **Math mode** (14 fixes, default): All general fixes plus tab corruption, spaced `\text{}`, connective spacing, author/CAPS headers, empty `$$` blocks.
 
 ```bash
-python3 cleanup_ocr.py file.md                         # math mode (default)
-python3 cleanup_ocr.py file.md --mode general
-python3 cleanup_ocr.py directory/                       # batch
-python3 cleanup_ocr.py file.md --preset dummit-foote
-python3 cleanup_ocr.py file.md --dry-run --verbose
+uv run cleanup-ocr file.md                       # math mode (default)
+uv run cleanup-ocr file.md --mode general
+uv run cleanup-ocr directory/                    # batch
+uv run cleanup-ocr file.md --preset dummit-foote
+uv run cleanup-ocr file.md --dry-run --verbose
 ```
 
 No external dependencies (stdlib only).
@@ -114,6 +114,7 @@ uv run proofread-ocr input.md
 
 ```
 mistral-ocr-process/
+├── pyproject.toml              # Project config + script entries
 ├── pipeline.py                 # Orchestrator (all 3 stages)
 ├── convert_pdf_to_markdown.py  # Stage 1: Mistral OCR API
 ├── cleanup_ocr.py              # Stage 2: Rule-based cleanup
