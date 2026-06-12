@@ -28,6 +28,7 @@ class PipelineConfig:
     prompt_path: Path | None = None
     verbose: bool = False
     preset: str | None = None
+    edit_mode: str = "rewrite"
 
 
 @dataclass
@@ -84,6 +85,8 @@ class ProofreadResult:
     chunk_id: str
     success: bool
     output_text: str | None = None
+    patch_text: str | None = None
+    edit_mode: str = "rewrite"
     error: str | None = None
     duration_sec: float = 0.0
     tokens_in: int | None = None

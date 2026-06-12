@@ -9,6 +9,7 @@ Detects and corrects context-dependent OCR errors (character confusion, broken L
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
 - [Antigravity CLI](https://github.com/google-gemini/adk-python) (`agy`) with Gemini 3.5 Flash access
+- [Bun](https://bun.sh/) 1.3.14+ if using `--edit-mode hashline`
 - macOS (Apple Silicon) — tested environment
 
 ## Installation
@@ -16,6 +17,7 @@ Detects and corrects context-dependent OCR errors (character confusion, broken L
 ```bash
 cd proofread-ocr
 uv sync
+bun install  # only required for --edit-mode hashline
 ```
 
 ## Quick Start
@@ -35,6 +37,31 @@ input.md ──> Phase 1 ──> Phase 2 ──> Phase 3 ──> Phase 4 ──>
              Context      Chunk       Parallel     Merge
              Extraction   Splitting   Proofread    + Review
 ```
+
+## LLM Backend Direction
+
+The current implementation uses Antigravity CLI (`agy`) as the Gemini backend.
+Keep that path as the default until there is a concrete need to migrate model
+providers.
+
+If an OpenAI backend is added later, prefer a small provider abstraction around
+the current `run_gemini()` boundary:
+
+- `AgyGeminiClient`: current behavior, preserving parallel subprocess execution,
+  retries, cached chunk results, and tmux debug mode.
+- `OpenAIResponsesClient`: synchronous per-chunk proofreading via the OpenAI
+  Responses API. This is the likely first OpenAI implementation because it maps
+  directly to `prompt + context + chunk -> corrected markdown`.
+- `OpenAIBatchClient`: future-only executor for large asynchronous proofreading
+  jobs. It should write `.jsonl` batch requests, submit a Batch API job, poll or
+  resume by batch id, and merge completed results back into the existing
+  `results/` format. Do not implement this until batch cost, latency, and
+  operational needs justify the extra state machine.
+
+Do not use Codex App Server as the proofreading backend. App Server is intended
+for rich Codex client integrations with threads, approvals, conversation
+history, and streamed agent events; this pipeline needs a deterministic
+text-to-text batch executor instead.
 
 ### Phase 1: Context Extraction
 
@@ -59,6 +86,18 @@ homomorphism <!-- FIXED: homornorphism -> homomorphism | OCR: rn -> m -->
 ```
 
 Supports resume — already-completed chunks are skipped on re-run.
+
+Hashline mode is available as an experimental safer editing path:
+
+```bash
+uv run proofread-ocr input.md --edit-mode hashline
+```
+
+In this mode, the model returns a compact Hashline patch instead of a full
+rewritten chunk. The TypeScript sidecar applies it with `@oh-my-pi/hashline`
+against the original chunk snapshot before the corrected text is saved.
+See [docs/hashline-edit-mode.md](docs/hashline-edit-mode.md) for the design,
+failure handling, and validation notes.
 
 ### Phase 4: Merge + Review
 
@@ -103,6 +142,7 @@ proofread-ocr input.md --phase merge      # Phase 4 only
 | `--strip-annotations` | — | Remove FIXED/UNCERTAIN comments from output |
 | `--verbose` | — | Detailed progress logging |
 | `--prompt <path>` | — | Custom proofreading prompt |
+| `--edit-mode <mode>` | `rewrite` | `rewrite` or experimental `hashline` patch mode |
 | `--preset <name>` | — | Book-specific preset (e.g. `dummit-foote`) |
 
 ### Examples
@@ -128,7 +168,10 @@ proofread-ocr/
 ├── pyproject.toml
 ├── prompts/
 │   ├── extract_context.md      # Phase 1 prompt
-│   └── proofread.md            # Phase 3 prompt
+│   ├── proofread.md            # Phase 3 rewrite prompt
+│   └── proofread_hashline.md   # Phase 3 Hashline patch prompt
+├── scripts/
+│   └── apply_hashline.ts       # Bun sidecar for @oh-my-pi/hashline
 ├── src/proofread_ocr/
 │   ├── cli.py                  # CLI entry point
 │   ├── context.py              # Phase 1: context extraction
@@ -136,6 +179,7 @@ proofread-ocr/
 │   ├── proofreader.py          # Phase 3: parallel proofreading
 │   ├── merger.py               # Phase 4: merge + reports
 │   ├── gemini.py               # Async Antigravity CLI (agy) wrapper
+│   ├── hashline.py             # Python wrapper around the Hashline sidecar
 │   └── models.py               # Data models (dataclasses)
 ├── tests/
 │   ├── test_chunker.py

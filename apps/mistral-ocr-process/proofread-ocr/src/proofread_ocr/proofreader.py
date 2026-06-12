@@ -8,6 +8,12 @@ import time
 from pathlib import Path
 
 from .gemini import GeminiResponse, launch_tmux_session, run_gemini
+from .hashline import (
+    HashlineError,
+    apply_hashline_patch,
+    describe_target,
+    extract_hashline_patch,
+)
 from .models import ChunkManifest, PipelineConfig, ProofreadResult
 
 
@@ -22,12 +28,14 @@ async def _proofread_chunk(
     """Proofread a single chunk."""
     chunk_id = chunk_path.stem.replace("chunk_", "")
     result_path = results_dir / f"chunk_{chunk_id}.json"
+    chunk_text = chunk_path.read_text(encoding="utf-8")
+    hashline_patch_text: str | None = None
 
     # Resume support: skip if result already exists
     if not config.force and result_path.exists():
         try:
             existing = ProofreadResult.load(result_path)
-            if existing.success:
+            if existing.success and existing.edit_mode == config.edit_mode:
                 if config.verbose:
                     print(f"  Chunk {chunk_id}: skipped (cached)")
                 return existing
@@ -39,9 +47,49 @@ async def _proofread_chunk(
             print(f"  Chunk {chunk_id}: processing...")
 
         start = time.monotonic()
+        file_paths = [prompt_path, context_path, chunk_path]
+        prompt = "Proofread the following OCR text per the instructions provided via stdin."
+        if config.edit_mode == "hashline":
+            try:
+                target = await describe_target(chunk_path.name, chunk_text, timeout=30)
+            except HashlineError as exc:
+                duration = time.monotonic() - start
+                result = ProofreadResult(
+                    chunk_id=chunk_id,
+                    success=False,
+                    edit_mode=config.edit_mode,
+                    error=str(exc)[:500],
+                    duration_sec=duration,
+                )
+                result.save(result_path)
+                print(f"  Chunk {chunk_id}: FAILED ({str(exc)[:100]})", file=sys.stderr)
+                return result
+
+            target_dir = results_dir / "hashline_targets"
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target_path = target_dir / f"chunk_{chunk_id}.hashline.md"
+            target_path.write_text(
+                "\n".join(
+                    [
+                        "## Hashline Target",
+                        "",
+                        f"Edit this exact chunk only. Use this section header in the patch: `{target.header}`",
+                        "",
+                        "```hashline-source",
+                        target.header,
+                        target.numbered_text,
+                        "```",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            file_paths = [prompt_path, context_path, target_path]
+            prompt = "Return only a Hashline patch for the OCR proofreading target."
+
         response = await run_gemini(
-            file_paths=[prompt_path, context_path, chunk_path],
-            prompt="Proofread the following OCR text per the instructions provided via stdin.",
+            file_paths=file_paths,
+            prompt=prompt,
             model=config.model,
             output_format="json",
             timeout=config.timeout,
@@ -67,10 +115,37 @@ async def _proofread_chunk(
                 )
                 print(f"  Chunk {chunk_id}: FAILED (empty response)", file=sys.stderr)
             else:
+                text = response.text
+                if config.edit_mode == "hashline":
+                    try:
+                        hashline_patch_text = extract_hashline_patch(response.text)
+                        text = await apply_hashline_patch(
+                            chunk_path.name,
+                            chunk_text,
+                            hashline_patch_text,
+                            timeout=30,
+                        )
+                    except HashlineError as exc:
+                        result = ProofreadResult(
+                            chunk_id=chunk_id,
+                            success=False,
+                            patch_text=hashline_patch_text or response.text[:2000],
+                            edit_mode=config.edit_mode,
+                            error=str(exc)[:500],
+                            duration_sec=duration,
+                            tokens_in=response.tokens_in,
+                            tokens_out=response.tokens_out,
+                        )
+                        print(f"  Chunk {chunk_id}: FAILED ({str(exc)[:100]})", file=sys.stderr)
+                        result.save(result_path)
+                        return result
+
                 result = ProofreadResult(
                     chunk_id=chunk_id,
                     success=True,
                     output_text=text,
+                    patch_text=hashline_patch_text,
+                    edit_mode=config.edit_mode,
                     duration_sec=duration,
                     tokens_in=response.tokens_in,
                     tokens_out=response.tokens_out,
@@ -110,6 +185,9 @@ async def run_proofreading(
 
     # tmux debug mode
     if config.debug:
+        if config.edit_mode == "hashline":
+            print("Error: --debug is not supported with --edit-mode hashline.", file=sys.stderr)
+            sys.exit(1)
         print(f"Phase 3: Launching tmux session with {len(chunk_paths)} panes...")
         launch_tmux_session(
             chunks=chunk_paths,
@@ -131,7 +209,10 @@ async def run_proofreading(
         return results
 
     # Async subprocess mode
-    print(f"Phase 3: Proofreading {len(chunk_paths)} chunks (concurrency={config.concurrency})...")
+    print(
+        f"Phase 3: Proofreading {len(chunk_paths)} chunks "
+        f"(concurrency={config.concurrency}, edit_mode={config.edit_mode})..."
+    )
     semaphore = asyncio.Semaphore(config.concurrency)
 
     tasks = [

@@ -17,9 +17,13 @@ wheels/
 
 # OCR output
 output/
+.proofread/
 
 # Agent session data
 SESSION.md
 
 # Workspace files
 workspace
+
+# JavaScript dependencies
+node_modules/

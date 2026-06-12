@@ -11,6 +11,7 @@ Gemini CLI を利用した、OCR 変換済み Markdown の LLM ベース校正�
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
 - [Gemini CLI](https://github.com/google-gemini/gemini-cli) v0.21.1+（Gemini 3 Flash アクセス可能）
+- `--edit-mode hashline` を使う場合は [Bun](https://bun.sh/) 1.3.14+
 - macOS (Apple Silicon) — 動作確認環境
 
 ## インストール
@@ -18,6 +19,7 @@ Gemini CLI を利用した、OCR 変換済み Markdown の LLM ベース校正�
 ```bash
 cd proofread-ocr
 uv sync
+bun install  # --edit-mode hashline を使う場合のみ必要
 ```
 
 ## クイックスタート
@@ -37,6 +39,18 @@ input.md ──> Phase 1 ──> Phase 2 ──> Phase 3 ──> Phase 4 ──>
              コンテキスト   チャンク     並列校正     マージ
              抽出           分割                      + レビュー
 ```
+
+## LLM バックエンド方針
+
+現時点の実装は Antigravity CLI (`agy`) を Gemini バックエンドとして使います。モデルプロバイダを移行する具体的な必要が出るまでは、この経路をデフォルトとして維持します。
+
+将来 OpenAI バックエンドを追加する場合は、現在の `run_gemini()` 境界の周辺に薄い provider abstraction を置く方針にします。
+
+- `AgyGeminiClient`: 現行実装。並列 subprocess 実行、リトライ、チャンク結果キャッシュ、tmux デバッグモードを維持する。
+- `OpenAIResponsesClient`: OpenAI Responses API による同期的なチャンク校正。`prompt + context + chunk -> corrected markdown` に直接対応するため、OpenAI 対応の第一候補。
+- `OpenAIBatchClient`: 大量の非同期校正ジョブ向けの将来候補。`.jsonl` batch request の作成、Batch API job の投入、batch id による poll/resume、既存 `results/` 形式への結果統合を担う。ただし、コスト・レイテンシ・運用上の必要が明確になるまでは実装しない。
+
+Codex App Server は校正バックエンドとして使わない方針です。App Server は thread、approval、conversation history、streamed agent events を持つリッチな Codex client integration 向けであり、このパイプラインには決定的な text-to-text batch executor のほうが適しています。
 
 ### Phase 1: コンテキスト抽出
 
@@ -61,6 +75,18 @@ homomorphism <!-- FIXED: homornorphism -> homomorphism | OCR: rn -> m -->
 ```
 
 リジューム対応 — 完了済みチャンクは再実行時にスキップされます。
+
+実験的な安全寄りの編集方式として Hashline mode も利用できます。
+
+```bash
+uv run proofread-ocr input.md --edit-mode hashline
+```
+
+このモードでは、モデルは校正済みチャンク全文ではなく Hashline patch を返します。
+TypeScript sidecar が `@oh-my-pi/hashline` で元チャンクの snapshot に対して
+patch を適用し、成功した場合だけ校正済みテキストとして保存します。
+設計意図、失敗時の扱い、検証内容は
+[docs/hashline-edit-mode.md](docs/hashline-edit-mode.md) にまとめています。
 
 ### Phase 4: マージ + レビュー
 
@@ -105,6 +131,7 @@ proofread-ocr input.md --phase merge      # Phase 4 のみ
 | `--strip-annotations` | — | 出力から FIXED/UNCERTAIN コメントを除去 |
 | `--verbose` | — | 詳細な進捗ログ |
 | `--prompt <path>` | — | カスタム校正プロンプト |
+| `--edit-mode <mode>` | `rewrite` | `rewrite` または実験的な `hashline` patch mode |
 
 ### 実行例
 
@@ -129,7 +156,10 @@ proofread-ocr/
 ├── pyproject.toml
 ├── prompts/
 │   ├── extract_context.md      # Phase 1 プロンプト
-│   └── proofread.md            # Phase 3 プロンプト
+│   ├── proofread.md            # Phase 3 rewrite プロンプト
+│   └── proofread_hashline.md   # Phase 3 Hashline patch プロンプト
+├── scripts/
+│   └── apply_hashline.ts       # @oh-my-pi/hashline 用 Bun sidecar
 ├── src/proofread_ocr/
 │   ├── cli.py                  # CLI エントリポイント
 │   ├── context.py              # Phase 1: コンテキスト抽出
@@ -137,6 +167,7 @@ proofread-ocr/
 │   ├── proofreader.py          # Phase 3: 並列校正
 │   ├── merger.py               # Phase 4: マージ + レポート生成
 │   ├── gemini.py               # Gemini CLI 非同期ラッパー
+│   ├── hashline.py             # Hashline sidecar の Python ラッパー
 │   └── models.py               # データモデル（dataclass）
 ├── tests/
 │   ├── test_chunker.py

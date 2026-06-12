@@ -95,6 +95,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Output options
     parser.add_argument("--strip-annotations", action="store_true", help="出力からアノテーションを除去")
+    parser.add_argument(
+        "--edit-mode",
+        choices=["rewrite", "hashline"],
+        default="rewrite",
+        help="校正の編集方式（rewrite: 全文出力, hashline: Hashlineパッチ適用）",
+    )
 
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
@@ -138,6 +144,7 @@ async def _run_pipeline(args: argparse.Namespace) -> None:
         prompt_path=Path(args.prompt).resolve() if args.prompt else None,
         verbose=args.verbose,
         preset=args.preset,
+        edit_mode=args.edit_mode,
     )
 
     chunks_dir = workdir / "chunks"
@@ -145,6 +152,8 @@ async def _run_pipeline(args: argparse.Namespace) -> None:
     output_dir = output_path.parent / "output"
     context_prompt = config.prompt_path or (prompt_dir / "extract_context.md")
     proofread_prompt = config.prompt_path or (prompt_dir / "proofread.md")
+    if config.edit_mode == "hashline" and config.prompt_path is None:
+        proofread_prompt = prompt_dir / "proofread_hashline.md"
 
     phase = config.phase
     context_path = config.context_path
@@ -221,9 +230,10 @@ async def _run_pipeline(args: argparse.Namespace) -> None:
                       f"lines {meta.line_start}-{meta.line_end})")
             print(f"\nGemini commands that would be executed:")
             for meta in manifest.chunks:
+                if config.edit_mode == "hashline":
+                    print(f"  # Hashline mode: create numbered chunk target, then apply returned patch")
                 print(f"  cat {proofread_prompt} {context_path} {chunks_dir}/chunk_{meta.id}.md "
-                      f"| agy -p 'Proofread the following OCR text per the instructions provided via stdin.' "
-                      f"--output-format stream-json --model {config.model}")
+                      f"| agy -p 'Proofread the following OCR text per the instructions provided via stdin.'")
             return
 
         if phase == "chunk":
