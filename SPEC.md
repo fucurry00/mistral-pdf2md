@@ -20,9 +20,11 @@ From `apps/mistral-ocr-process/`:
 
 ```bash
 uv run pipeline input.pdf output/
+uv run pipeline input.pdf output/ --steps ocr,plan-cleanup,cleanup,proofread
 uv run pipeline input.pdf output/ --steps ocr,cleanup
 uv run convert-pdf input.pdf output.md
 uv run cleanup-ocr output.md
+uv run cleanup-ocr output.md --plan cleanup_plan.json
 ```
 
 From `apps/mistral-ocr-process/proofread-ocr/`:
@@ -41,8 +43,18 @@ The default `pipeline` command runs:
 PDF -> Mistral OCR -> cleanup-ocr -> proofread-ocr -> Markdown
 ```
 
-The orchestrator supports `--steps ocr,cleanup,proofread`, `--mode
+The orchestrator supports `--steps ocr,plan-cleanup,cleanup,proofread`, `--mode
 math|general`, `--preset`, `--pages`, `--chunk-size`, and `--dry-run`.
+It also supports an opt-in `plan-cleanup` step before cleanup:
+
+```text
+PDF -> Mistral OCR -> cleanup planner -> cleanup-ocr -> proofread-ocr -> Markdown
+```
+
+The planner asks the LLM for `cleanup_plan.json` only. It does not rewrite
+document text. `cleanup-ocr` validates that JSON as a small static-cleanup DSL
+and applies the deterministic cleanup code with a dry-run diff preview before
+the real cleanup pass.
 
 Output for a single PDF is written to:
 
@@ -74,6 +86,9 @@ Required environment:
 - `math`: default mode; includes LaTeX/math-specific repairs.
 
 The stage can process files or directories and can run in dry-run/verbose mode.
+It can also accept `--plan cleanup_plan.json`, whose supported fields include
+`mode`, `preset`, `header_patterns`, `page_header_author`, `remove_separators`,
+`disabled_fixes`, `only_fixes`, `page_number_range`, and `image_mode`.
 
 ## Proofreading Stage
 

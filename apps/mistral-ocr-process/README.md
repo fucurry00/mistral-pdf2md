@@ -1,6 +1,8 @@
 # mistral-ocr-process
 
 PDF-to-Markdown conversion pipeline: Mistral OCR → rule-based cleanup → Gemini proofreading.
+An optional LLM cleanup planner can inspect OCR output and write cleanup
+settings before deterministic cleanup runs.
 
 ## Pipeline
 
@@ -13,7 +15,8 @@ PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
 | Stage | Script | What it does |
 | --- | --- | --- |
 | 1. OCR | `convert_pdf_to_markdown.py` | Converts PDF pages to Markdown via Mistral OCR API |
-| 2. Cleanup | `cleanup_ocr.py` | Removes OCR artifacts with regex rules (general or math mode) |
+| 2a. Cleanup planner | `pipeline.py --steps plan-cleanup,...` | Optional LLM scout that writes `cleanup_plan.json` only |
+| 2b. Cleanup | `cleanup_ocr.py` | Removes OCR artifacts with regex rules (general or math mode) |
 | 3. Proofread | `proofread-ocr/` | Context-aware LLM proofreading via Antigravity CLI (4-phase) |
 
 All three stages are orchestrated by `pipeline.py`.
@@ -36,6 +39,9 @@ uv run pipeline input.pdf output/
 # OCR + cleanup only (skip proofreading)
 uv run pipeline input.pdf output/ --steps ocr,cleanup
 
+# OCR + LLM cleanup plan + deterministic cleanup + proofread
+uv run pipeline input.pdf output/ --steps ocr,plan-cleanup,cleanup,proofread
+
 # Cleanup only
 uv run cleanup-ocr document.md
 
@@ -55,10 +61,15 @@ uv run pipeline pdf_dir/ [output_dir]          # batch mode
 
 # Options
 --mode math|general            # cleanup mode (default: math)
---steps ocr,cleanup,proofread  # select stages (default: all)
+--steps ocr,cleanup,proofread  # select stages (default)
+--steps ocr,plan-cleanup,cleanup,proofread
+                                # opt into LLM cleanup planning
 --preset dummit-foote          # book-specific header patterns
 --pages "1-50"                 # page selection (single file only)
 --chunk-size 20                # pages per OCR API call (default: 20)
+--cleanup-plan cleanup_plan.json
+                                # use an existing cleanup plan
+--planner-timeout 180           # agy timeout for plan-cleanup
 --dry-run                      # preview without processing
 ```
 
@@ -67,6 +78,7 @@ Output structure:
 output/{stem}/
 ├── {stem}.md           # final Markdown (proofread result)
 ├── {stem}.md.bak       # pre-proofread backup
+├── cleanup_plan.json   # optional LLM cleanup settings
 ├── .proofread/         # proofread working files (chunks, diffs, stats)
 └── images/             # extracted images
 ```
@@ -93,8 +105,14 @@ uv run cleanup-ocr file.md                       # math mode (default)
 uv run cleanup-ocr file.md --mode general
 uv run cleanup-ocr directory/                    # batch
 uv run cleanup-ocr file.md --preset dummit-foote
+uv run cleanup-ocr file.md --plan cleanup_plan.json
 uv run cleanup-ocr file.md --dry-run --verbose
 ```
+
+`cleanup_plan.json` is a bounded settings DSL, not executable code. Supported
+fields include `mode`, `preset`, `header_patterns`, `page_header_author`,
+`remove_separators`, `disabled_fixes`, `only_fixes`, `page_number_range`, and
+`image_mode`. Unknown fields, unknown fixes, and invalid regexes are rejected.
 
 No external dependencies (stdlib only).
 

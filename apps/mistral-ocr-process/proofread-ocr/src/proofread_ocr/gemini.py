@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import shlex
 import shutil
 import subprocess
 import sys
@@ -173,20 +174,22 @@ async def run_gemini(
         file_paths: List of file paths to read and pipe as stdin.
         prompt: Optional short prompt string passed via -p. If None,
                 the first file in file_paths is treated as the prompt.
-        model: Gemini model name.
-        output_format: Output format (stream-json recommended).
+        model: Accepted for backward compatibility but ignored — the agy
+               CLI has no model-selection flag.
+        output_format: Accepted for backward compatibility but ignored — the
+               agy CLI has no --output-format flag and emits plain text.
         timeout: Timeout in seconds per attempt.
     """
     # Read all file contents and concatenate
     stdin_text = _read_and_concat_files(file_paths)
 
-    # Build command
-    cmd = ["agy"]
-    if prompt:
-        cmd.extend(["-p", prompt])
-    else:
-        cmd.extend(["-p", "Process the following input:"])
-    cmd.extend(["--output-format", output_format, "--model", model])
+    # Build command. agy print mode (-p) takes the instruction prompt; the
+    # file contents are piped via stdin. agy does NOT support --output-format
+    # or --model, so `model`/`output_format` are intentionally not forwarded.
+    cmd = ["agy", "-p", prompt or "Process the following input:"]
+    # Align agy's internal print timeout with ours so it self-terminates with
+    # a clean message rather than being hard-killed below.
+    cmd.extend(["--print-timeout", f"{timeout}s"])
 
     last_error = ""
     for attempt in range(_MAX_RETRIES):
@@ -201,7 +204,9 @@ async def run_gemini(
             try:
                 stdout_bytes, stderr_bytes = await asyncio.wait_for(
                     proc.communicate(input=stdin_text.encode("utf-8")),
-                    timeout=timeout,
+                    # Small buffer beyond agy's own --print-timeout so it
+                    # exits cleanly before we hard-kill it.
+                    timeout=timeout + 30,
                 )
             except asyncio.TimeoutError:
                 proc.kill()
@@ -222,6 +227,31 @@ async def run_gemini(
             stdout_str = stdout_bytes.decode("utf-8", errors="replace")
             stderr_str = stderr_bytes.decode("utf-8", errors="replace")
 
+            # Surface the OAuth-login requirement as a clear, non-retryable
+            # error instead of a confusing usage dump.
+            if proc.returncode != 0:
+                combined = f"{stderr_str}\n{stdout_str}".lower()
+                if any(
+                    marker in combined
+                    for marker in (
+                        "authentication required",
+                        "please visit the url",
+                        "oauth",
+                        "not authenticated",
+                    )
+                ):
+                    return GeminiResponse(
+                        text="",
+                        raw_stdout=stdout_str,
+                        stderr=(
+                            "agy is not authenticated. Run `agy -p \"test\"` in a "
+                            "terminal and complete the OAuth login, then retry.\n\n"
+                            + stderr_str
+                        ),
+                        returncode=proc.returncode,
+                        duration_sec=duration,
+                    )
+
             # Check for rate limiting (429)
             if proc.returncode != 0 and "429" in stderr_str:
                 backoff = _INITIAL_BACKOFF * (2 ** attempt)
@@ -230,7 +260,8 @@ async def run_gemini(
                     await asyncio.sleep(backoff)
                     continue
 
-            text, tokens_in, tokens_out = _parse_stream_json(stdout_str)
+            # agy print mode emits plain text — no JSON envelope or token usage.
+            text = stdout_str.strip()
 
             return GeminiResponse(
                 text=text,
@@ -238,15 +269,15 @@ async def run_gemini(
                 stderr=stderr_str,
                 returncode=proc.returncode,
                 duration_sec=duration,
-                tokens_in=tokens_in,
-                tokens_out=tokens_out,
+                tokens_in=None,
+                tokens_out=None,
             )
 
         except FileNotFoundError:
             return GeminiResponse(
                 text="",
                 raw_stdout="",
-                stderr="'agy' CLI command not found. Install: https://github.com/google-gemini/adk-python",
+                stderr="'agy' (Antigravity CLI) command not found. Install it and run `agy` once to complete OAuth login.",
                 returncode=-1,
                 duration_sec=0.0,
             )
@@ -289,10 +320,12 @@ def launch_tmux_session(
         result_path = results_dir / f"chunk_{chunk_id}.json"
         done_marker = results_dir / f".done_{chunk_id}"
 
+        agy_prompt = shlex.quote(
+            "Proofread the following OCR text per the instructions."
+        )
         cmd = (
             f"cat {prompt_path} {context_path} {chunk_path} "
-            f"| agy -p 'Proofread the following OCR text per the instructions.' "
-            f"--output-format stream-json --model {model} "
+            f"| agy -p {agy_prompt} "
             f"| tee {result_path}; "
             f"touch {done_marker}"
         )

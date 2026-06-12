@@ -1,6 +1,6 @@
 # mistral-ocr-process
 
-PDF から Markdown への変換パイプラインです。Mistral OCR、ルールベースクリーンアップ、LLM 校正を順に実行します。
+PDF から Markdown への変換パイプラインです。Mistral OCR、ルールベースクリーンアップ、LLM 校正を順に実行します。任意で LLM cleanup planner を挟み、本文ではなく `cleanup_plan.json` だけを生成できます。
 
 [English README](README.md)
 
@@ -15,7 +15,8 @@ PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
 | ステージ | スクリプト | 機能 |
 | --- | --- | --- |
 | 1. OCR | `convert_pdf_to_markdown.py` | Mistral OCR API で PDF を Markdown に変換 |
-| 2. Cleanup | `cleanup_ocr.py` | 正規表現ルールで OCR アーティファクトを除去 |
+| 2a. Cleanup planner | `pipeline.py --steps plan-cleanup,...` | 任意。LLM が `cleanup_plan.json` だけを生成 |
+| 2b. Cleanup | `cleanup_ocr.py` | 正規表現ルールで OCR アーティファクトを除去 |
 | 3. Proofread | `proofread-ocr/` | Antigravity CLI (`agy`) 経由で文脈ベース校正 |
 
 3ステージは `pipeline.py` で一括実行できます。
@@ -39,6 +40,9 @@ uv run pipeline input.pdf output/
 # OCR + cleanup のみ
 uv run pipeline input.pdf output/ --steps ocr,cleanup
 
+# OCR + cleanup plan + deterministic cleanup + proofread
+uv run pipeline input.pdf output/ --steps ocr,plan-cleanup,cleanup,proofread
+
 # cleanup のみ
 uv run cleanup-ocr document.md
 
@@ -59,9 +63,12 @@ uv run pipeline pdf_dir/ [output_dir]
 
 --mode math|general
 --steps ocr,cleanup,proofread
+--steps ocr,plan-cleanup,cleanup,proofread
 --preset dummit-foote
 --pages "1-50"
 --chunk-size 20
+--cleanup-plan cleanup_plan.json
+--planner-timeout 180
 --dry-run
 ```
 
@@ -71,6 +78,7 @@ uv run pipeline pdf_dir/ [output_dir]
 output/{stem}/
 ├── {stem}.md
 ├── {stem}.md.bak
+├── cleanup_plan.json
 ├── .proofread/
 └── images/
 ```
@@ -96,8 +104,14 @@ uv run cleanup-ocr file.md
 uv run cleanup-ocr file.md --mode general
 uv run cleanup-ocr directory/
 uv run cleanup-ocr file.md --preset dummit-foote
+uv run cleanup-ocr file.md --plan cleanup_plan.json
 uv run cleanup-ocr file.md --dry-run --verbose
 ```
+
+`cleanup_plan.json` は実行コードではなく設定 DSL です。主なフィールドは
+`mode`, `preset`, `header_patterns`, `page_header_author`,
+`remove_separators`, `disabled_fixes`, `only_fixes`, `page_number_range`,
+`image_mode` です。未知のフィールド、未知の fix、壊れた正規表現は拒否されます。
 
 ### `proofread-ocr/`
 

@@ -27,3 +27,14 @@ workspace
 
 # JavaScript dependencies
 node_modules/
+
+# OMC
+.omc/
+.codex/*
+!.codex/agents/
+!.codex/agents/**
+!.codex/skills/
+!.codex/skills/**
+.codex/skills/.system/**
+!.codex/prompts/
+!.codex/prompts/**

@@ -32,6 +32,7 @@ Usage:
   python cleanup_ocr.py <file.md> --preset dummit-foote
   python cleanup_ocr.py <file.md> --header-pattern "^Chapter \\d+"
   python cleanup_ocr.py <file.md> --page-header-author="Andreas Gathmann"
+  python cleanup_ocr.py <file.md> --plan cleanup_plan.json
   python cleanup_ocr.py <file.md> --only=html_entities,spaced_text
   python cleanup_ocr.py <file.md> -o cleaned.md
   python cleanup_ocr.py <directory/> --dry-run --verbose
@@ -40,6 +41,7 @@ Usage:
 
 import argparse
 import difflib
+import json
 import re
 import sys
 from pathlib import Path
@@ -178,20 +180,14 @@ def fix_excessive_blanks(text: str) -> str:
 # Math-specific fix functions (--mode math)
 # ============================================================
 
-def fix_tab_corruption(filepath: Path) -> bool:
+def fix_tab_corruption_bytes(content: bytes) -> bytes:
     r"""Binary-level fix: TAB(0x09) + 'ext{' → '\\text{'.
 
     Python string processing can corrupt \\text into \t + ext.
-    Returns True if any fix was applied.
     """
-    content = filepath.read_bytes()
-    original = content
     content = content.replace(b"\x09ext{", b"\\text{")
     content = content.replace(b"\x09ext {", b"\\text {")
-    if content != original:
-        filepath.write_bytes(content)
-        return True
-    return False
+    return content
 
 
 # Greedy word table for re-wordifying collapsed text (longest first)
@@ -317,6 +313,91 @@ def fix_dollar_artifacts(text: str) -> str:
 
 
 # ============================================================
+# Cleanup plan support
+# ============================================================
+
+def _string_list(value, field: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"cleanup plan field {field!r} must be a list of strings")
+    return value
+
+
+def load_cleanup_plan(path: Path) -> dict:
+    """Load and validate the small JSON DSL used to steer static cleanup."""
+    try:
+        plan = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid cleanup plan JSON: {exc}") from exc
+
+    if not isinstance(plan, dict):
+        raise ValueError("cleanup plan must be a JSON object")
+
+    allowed_keys = {
+        "mode",
+        "preset",
+        "header_patterns",
+        "page_header_author",
+        "remove_separators",
+        "disabled_fixes",
+        "only_fixes",
+        "page_number_range",
+        "image_mode",
+        "suspected_artifacts",
+        "notes",
+    }
+    unknown_keys = sorted(set(plan) - allowed_keys)
+    if unknown_keys:
+        raise ValueError(f"unknown cleanup plan fields: {', '.join(unknown_keys)}")
+
+    mode = plan.get("mode")
+    if mode is not None and mode not in {"general", "math"}:
+        raise ValueError("cleanup plan field 'mode' must be 'general' or 'math'")
+
+    preset = plan.get("preset")
+    if preset is not None and preset not in PRESETS:
+        raise ValueError(f"unknown cleanup plan preset: {preset}")
+
+    image_mode = plan.get("image_mode")
+    if image_mode is not None and image_mode not in {"comment", "delete", "placeholder"}:
+        raise ValueError(
+            "cleanup plan field 'image_mode' must be comment, delete, or placeholder"
+        )
+
+    remove_separators = plan.get("remove_separators")
+    if remove_separators is not None and not isinstance(remove_separators, bool):
+        raise ValueError("cleanup plan field 'remove_separators' must be a boolean")
+
+    page_header_author = plan.get("page_header_author")
+    if page_header_author is not None and not isinstance(page_header_author, str):
+        raise ValueError("cleanup plan field 'page_header_author' must be a string")
+
+    page_number_range = plan.get("page_number_range")
+    if page_number_range is not None:
+        if not isinstance(page_number_range, str) or not re.match(r"^\d+,\d+$", page_number_range):
+            raise ValueError("cleanup plan field 'page_number_range' must be 'MIN,MAX'")
+
+    for field in ("header_patterns", "disabled_fixes", "only_fixes", "suspected_artifacts", "notes"):
+        _string_list(plan.get(field), field)
+
+    unknown_fixes = sorted(
+        (set(plan.get("disabled_fixes", [])) | set(plan.get("only_fixes", [])))
+        - set(ALL_FIXES)
+    )
+    if unknown_fixes:
+        raise ValueError(f"unknown cleanup fixes in plan: {', '.join(unknown_fixes)}")
+
+    for pattern in plan.get("header_patterns", []):
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise ValueError(f"invalid header pattern {pattern!r}: {exc}") from exc
+
+    return plan
+
+
+# ============================================================
 # File processing
 # ============================================================
 
@@ -334,13 +415,13 @@ def process_file(
     output_path: Path | None = None,
 ) -> bool:
     """Apply active fixes to a single file. Returns True if content changed."""
-    # Binary-level fix must run first (before reading as text)
-    tab_fixed = False
+    original_bytes = path.read_bytes()
+    working_bytes = original_bytes
     if "tab_corruption" in active_fixes:
-        tab_fixed = fix_tab_corruption(path)
+        working_bytes = fix_tab_corruption_bytes(working_bytes)
 
-    original = path.read_text(encoding="utf-8")
-    text = original
+    original = original_bytes.decode("utf-8")
+    text = working_bytes.decode("utf-8")
 
     # General fixes
     if "html_entities" in active_fixes:
@@ -375,7 +456,7 @@ def process_file(
         text = fix_excessive_blanks(text)
 
     text = text.strip() + "\n"
-    changed = (text != original) or tab_fixed
+    changed = text != original
 
     if verbose and changed:
         diff = "\n".join(difflib.unified_diff(
@@ -487,6 +568,12 @@ def main():
         help='Author name to remove as page header (e.g., "Andreas Gathmann")',
     )
     parser.add_argument(
+        "--plan",
+        default=None,
+        metavar="JSON",
+        help="Cleanup plan JSON generated by an LLM scout/planner",
+    )
+    parser.add_argument(
         "--only",
         default=None,
         help=f"Comma-separated fixes to apply. Choices: {','.join(ALL_FIXES)}",
@@ -513,10 +600,32 @@ def main():
 
     args = parser.parse_args()
 
+    plan = None
+    if args.plan:
+        try:
+            plan = load_cleanup_plan(Path(args.plan))
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        if plan.get("mode"):
+            args.mode = plan["mode"]
+        if plan.get("preset"):
+            args.preset = plan["preset"]
+        if "remove_separators" in plan:
+            args.remove_separators = plan["remove_separators"]
+        if plan.get("page_header_author"):
+            args.page_header_author = plan["page_header_author"]
+        if plan.get("page_number_range"):
+            args.page_number_range = plan["page_number_range"]
+        if plan.get("image_mode"):
+            args.image_mode = plan["image_mode"]
+
     # Resolve header patterns
     patterns = list(args.header_patterns)
     if args.preset:
         patterns = PRESETS[args.preset] + patterns
+    if plan:
+        patterns += plan.get("header_patterns", [])
 
     # Parse page number range
     try:
@@ -526,12 +635,22 @@ def main():
         sys.exit(1)
 
     # Determine active fixes based on mode and --only
-    if args.only:
+    if plan and plan.get("only_fixes"):
+        active_fixes = set(plan["only_fixes"])
+    elif args.only:
         active_fixes = set(args.only.split(","))
     elif args.mode == "math":
         active_fixes = set(ALL_FIXES)
     else:
         active_fixes = set(GENERAL_FIXES)
+
+    unknown_cli_fixes = sorted(active_fixes - set(ALL_FIXES))
+    if unknown_cli_fixes:
+        print(f"Error: unknown fixes: {', '.join(unknown_cli_fixes)}", file=sys.stderr)
+        sys.exit(1)
+
+    if plan and plan.get("disabled_fixes"):
+        active_fixes -= set(plan["disabled_fixes"])
 
     # Collect files
     files: list[Path] = []
@@ -554,8 +673,14 @@ def main():
 
     mode_label = "[dry-run] " if args.dry_run else ""
     print(f"{mode_label}Processing {len(files)} file(s) (mode={args.mode}) ...")
+    if args.plan:
+        print(f"  Cleanup plan: {args.plan}")
+        if patterns:
+            print(f"  Header patterns: {len(patterns)}")
     if args.only:
         print(f"  Active fixes: {args.only}")
+    elif plan and (plan.get("only_fixes") or plan.get("disabled_fixes")):
+        print(f"  Active fixes: {','.join(sorted(active_fixes))}")
 
     modified = 0
     for path in files:
