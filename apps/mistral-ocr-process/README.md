@@ -76,8 +76,8 @@ output/{stem}/
 Converts PDF to Markdown via the Mistral OCR API. Supports page selection, chunked processing for large files, and resume from interruption (`.progress.json`).
 
 ```bash
-uv run convert-pdf input.pdf -o output.md
-uv run convert-pdf input.pdf -o output.md --pages "1-10"
+uv run convert-pdf input.pdf output.md
+uv run convert-pdf input.pdf output.md --pages "1-10"
 ```
 
 ### `cleanup_ocr.py` — Rule-based Cleanup

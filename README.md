@@ -36,6 +36,20 @@ See:
 - [`apps/mistral-ocr-process/proofread-ocr/README.md`](apps/mistral-ocr-process/proofread-ocr/README.md)
 - [`apps/mistral-ocr-process/proofread-ocr/docs/hashline-edit-mode.md`](apps/mistral-ocr-process/proofread-ocr/docs/hashline-edit-mode.md)
 
+## Documentation Map
+
+| Document | Purpose |
+| --- | --- |
+| [`SPEC.md`](SPEC.md) | Current repository-level behavior contract |
+| [`apps/mistral-ocr-process/README.md`](apps/mistral-ocr-process/README.md) | Main pipeline usage |
+| [`apps/mistral-ocr-process/README.ja.md`](apps/mistral-ocr-process/README.ja.md) | Japanese pipeline usage |
+| [`apps/mistral-ocr-process/proofread-ocr/README.md`](apps/mistral-ocr-process/proofread-ocr/README.md) | Proofreading package usage |
+| [`apps/mistral-ocr-process/proofread-ocr/SPEC.md`](apps/mistral-ocr-process/proofread-ocr/SPEC.md) | Proofreading behavior contract |
+| [`apps/mistral-ocr-process/proofread-ocr/docs/hashline-edit-mode.md`](apps/mistral-ocr-process/proofread-ocr/docs/hashline-edit-mode.md) | Hashline edit-mode design |
+
+Session resume commands are not tracked as project documentation. Keep
+short-lived run state outside the repository.
+
 ### Apps
 
 | App | Description |

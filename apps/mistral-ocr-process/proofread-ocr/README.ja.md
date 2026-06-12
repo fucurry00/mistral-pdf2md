@@ -1,6 +1,6 @@
 # proofread-ocr
 
-Gemini CLI を利用した、OCR 変換済み Markdown の LLM ベース校正パイプライン。
+Antigravity CLI (`agy`) を利用した、OCR 変換済み Markdown の LLM ベース校正パイプライン。
 
 ルールベースのクリーンアップスクリプトでは対応不可能な、文脈依存の OCR エラー（文字の取り違え、LaTeX 記法の崩れ、相互参照の番号ずれ等）を検出・修正します。
 
@@ -10,7 +10,7 @@ Gemini CLI を利用した、OCR 変換済み Markdown の LLM ベース校正�
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli) v0.21.1+（Gemini 3 Flash アクセス可能）
+- Antigravity CLI (`agy`)（Gemini 3.5 Flash アクセス可能）
 - `--edit-mode hashline` を使う場合は [Bun](https://bun.sh/) 1.3.14+
 - macOS (Apple Silicon) — 動作確認環境
 
@@ -28,7 +28,7 @@ bun install  # --edit-mode hashline を使う場合のみ必要
 # 全4フェーズを順次実行
 uv run proofread-ocr input.md
 
-# ドライラン — Gemini を呼ばずにチャンク分割結果をプレビュー
+# ドライラン — agy を呼ばずにチャンク分割結果をプレビュー
 uv run proofread-ocr input.md --dry-run --verbose
 ```
 
@@ -68,7 +68,7 @@ Codex App Server は校正バックエンドとして使わない方針です。
 
 ### Phase 3: 並列校正
 
-各チャンクを Gemini CLI に並列送信します（`cat prompt context chunk | gemini -p ...`）。すべての修正にアノテーションが付きます。
+各チャンクを Antigravity CLI に並列送信します（`cat prompt context chunk | agy -p ...`）。すべての修正にアノテーションが付きます。
 
 ```markdown
 homomorphism <!-- FIXED: homornorphism -> homomorphism | OCR: rn -> m -->
@@ -118,10 +118,10 @@ proofread-ocr input.md --phase merge      # Phase 4 のみ
 | --- | --- | --- |
 | `-o, --output <path>` | `{input}_proofread.md` | 出力先ファイルパス |
 | `-w, --workdir <path>` | `.proofread/` | 中間ファイル用作業ディレクトリ |
-| `-m, --model <model>` | `gemini-3-flash-preview` | Gemini モデル |
+| `-m, --model <model>` | `gemini-3.5-flash` | Gemini モデル |
 | `--chunk-size <tokens>` | `20000` | チャンクあたりの最大トークン数 |
 | `--overlap-lines <n>` | `5` | チャンク間のオーバーラップ行数 |
-| `--concurrency <n>` | `4` | Gemini の並列呼び出し数 |
+| `--concurrency <n>` | `10` | agy の並列呼び出し数 |
 | `--timeout <seconds>` | `300` | チャンクあたりのタイムアウト |
 | `--skip-context-review` | — | Phase 1 後の人間レビューをスキップ |
 | `--context <path>` | — | 既存の context.md を指定（Phase 1 をスキップ） |
@@ -166,7 +166,7 @@ proofread-ocr/
 │   ├── chunker.py              # Phase 2: チャンク分割
 │   ├── proofreader.py          # Phase 3: 並列校正
 │   ├── merger.py               # Phase 4: マージ + レポート生成
-│   ├── gemini.py               # Gemini CLI 非同期ラッパー
+│   ├── gemini.py               # Antigravity CLI 非同期ラッパー
 │   ├── hashline.py             # Hashline sidecar の Python ラッパー
 │   └── models.py               # データモデル（dataclass）
 ├── tests/
@@ -188,4 +188,4 @@ uv run pytest tests/ -v
 - **忠実性最優先** — 原文の意味を変更しない。校正であり、編集・リライトではない
 - **透明性** — すべての修正にアノテーション（原文・修正後・理由）を付与
 - **冪等性** — 再実行可能。中断からの再開をサポート
-- **外部依存ゼロ** — 標準ライブラリのみ（Gemini CLI 本体を除く）
+- **外部依存ゼロ** — 標準ライブラリのみ（Antigravity CLI 本体を除く）

@@ -16,24 +16,25 @@ Convert PDF documents to Markdown format using Mistral's OCR API. Automatically 
 
 ## Quick Start
 
-Use the conversion script from this skill's directory:
+Use the project script from `apps/mistral-ocr-process/`:
 
 ```bash
 # Convert entire PDF (auto-chunked, 20 pages per API call)
-python scripts/convert_pdf_to_markdown.py input.pdf output.md
+cd apps/mistral-ocr-process
+uv run convert-pdf input.pdf output.md
 
 # Convert specific pages
-python scripts/convert_pdf_to_markdown.py input.pdf output.md --pages "1-5"
-python scripts/convert_pdf_to_markdown.py input.pdf output.md --pages "1,3,5"
+uv run convert-pdf input.pdf output.md --pages "1-5"
+uv run convert-pdf input.pdf output.md --pages "1,3,5"
 
 # Large PDF with custom chunk size
-python scripts/convert_pdf_to_markdown.py input.pdf output.md --chunk-size 30
+uv run convert-pdf input.pdf output.md --chunk-size 30
 
 # Custom API timeout (seconds)
-python scripts/convert_pdf_to_markdown.py input.pdf output.md --timeout 180
+uv run convert-pdf input.pdf output.md --timeout 180
 
 # Resume an interrupted run (just re-run the same command)
-python scripts/convert_pdf_to_markdown.py input.pdf output.md
+uv run convert-pdf input.pdf output.md
 ```
 
 ## Output Structure
@@ -56,7 +57,7 @@ import subprocess
 # Run conversion script
 result = subprocess.run([
     "python",
-    ".claude/skills/mistral-pdf-to-markdown/scripts/convert_pdf_to_markdown.py",
+    "apps/mistral-ocr-process/convert_pdf_to_markdown.py",
     "input.pdf",
     "Output/PDFConversions/output.md",
     "--pages", "1-10"
@@ -84,7 +85,7 @@ The script requires:
 
 ### Convert Research Paper
 ```bash
-python scripts/convert_pdf_to_markdown.py \
+uv run --project apps/mistral-ocr-process convert-pdf \
   "Data/papers/research.pdf" \
   "Notes/Paper Markdown/research.md"
 ```
@@ -92,7 +93,7 @@ python scripts/convert_pdf_to_markdown.py \
 ### Extract Specific Sections
 ```bash
 # Extract pages 10-20 (introduction and methods)
-python scripts/convert_pdf_to_markdown.py \
+uv run --project apps/mistral-ocr-process convert-pdf \
   "paper.pdf" \
   "Notes/Paper Markdown/intro_methods.md" \
   --pages "10-20"
@@ -101,7 +102,7 @@ python scripts/convert_pdf_to_markdown.py \
 ### Extract Figures Only
 ```bash
 # Extract pages with figures
-python scripts/convert_pdf_to_markdown.py \
+uv run --project apps/mistral-ocr-process convert-pdf \
   "paper.pdf" \
   "Notes/Paper Markdown/figures.md" \
   --pages "25,27,30,35"

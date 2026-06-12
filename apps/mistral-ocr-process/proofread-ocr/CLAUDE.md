@@ -1,13 +1,13 @@
 # proofread-ocr
 
-LLM-based OCR proofreading pipeline using Gemini CLI.
+LLM-based OCR proofreading pipeline using Antigravity CLI (`agy`).
 
 ## Architecture
 
 4-phase pipeline:
 1. **Context extraction** (`context.py`): Extract notation table, structure outline, terminology whitelist
 2. **Chunking** (`chunker.py`): Split by `##`/`###` boundaries with overlap markers
-3. **Parallel proofreading** (`proofreader.py`): Async subprocess calls to Gemini CLI
+3. **Parallel proofreading** (`proofreader.py`): Async subprocess calls to `agy`
 4. **Merge + review** (`merger.py`): Reassemble chunks, generate diff report and stats
 
 ## Key conventions

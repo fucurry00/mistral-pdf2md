@@ -58,7 +58,7 @@ The script automatically:
 
 ```python
 import sys
-sys.path.append('.claude/skills/mistral-pdf-to-markdown/scripts')
+sys.path.append('apps/mistral-ocr-process')
 from convert_pdf_to_markdown import (
     load_api_key,
     extract_pages,
@@ -97,7 +97,7 @@ for pdf_file in pdf_dir.glob("*.pdf"):
 
     subprocess.run([
         "python",
-        ".claude/skills/mistral-pdf-to-markdown/scripts/convert_pdf_to_markdown.py",
+        "apps/mistral-ocr-process/convert_pdf_to_markdown.py",
         str(pdf_file),
         str(output_file)
     ])
