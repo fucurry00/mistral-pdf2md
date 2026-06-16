@@ -1,6 +1,6 @@
 # mistral-ocr-process
 
-PDF-to-Markdown conversion pipeline: Mistral OCR → rule-based cleanup → Gemini proofreading.
+PDF-to-Markdown conversion pipeline: Mistral OCR → rule-based cleanup → LLM proofreading.
 An optional LLM cleanup planner can inspect OCR output and write cleanup
 settings before deterministic cleanup runs.
 
@@ -8,7 +8,7 @@ settings before deterministic cleanup runs.
 
 ```
 PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
-        Mistral     Rule-based   Gemini
+        Mistral     Rule-based   LLM
         OCR         Cleanup      Proofread
 ```
 
@@ -17,7 +17,7 @@ PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
 | 1. OCR | `convert_pdf_to_markdown.py` | Converts PDF pages to Markdown via Mistral OCR API |
 | 2a. Cleanup planner | `pipeline.py --steps plan-cleanup,...` | Optional LLM scout that writes `cleanup_plan.json` only |
 | 2b. Cleanup | `cleanup_ocr.py` | Removes OCR artifacts with regex rules (general or math mode) |
-| 3. Proofread | `proofread-ocr/` | Context-aware LLM proofreading via Antigravity CLI (4-phase) |
+| 3. Proofread | `proofread-ocr/` | Context-aware LLM proofreading via a completion API (4-phase) |
 
 All three stages are orchestrated by `pipeline.py`.
 
@@ -26,7 +26,7 @@ All three stages are orchestrated by `pipeline.py`.
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
 - [Mistral API key](https://docs.mistral.ai/) in `.env` (`MISTRAL_API_KEY=...`)
-- [Antigravity CLI](https://github.com/google-gemini/adk-python) (`agy`) for stage 3
+- An LLM API key for stages 2a/3 (`GEMINI_API_KEY` or `ANTHROPIC_API_KEY`)
 
 ## Quick Start
 
@@ -69,7 +69,7 @@ uv run pipeline pdf_dir/ [output_dir]          # batch mode
 --chunk-size 20                # pages per OCR API call (default: 20)
 --cleanup-plan cleanup_plan.json
                                 # use an existing cleanup plan
---planner-timeout 180           # agy timeout for plan-cleanup
+--planner-timeout 180           # LLM timeout for plan-cleanup
 --dry-run                      # preview without processing
 ```
 
@@ -118,7 +118,7 @@ No external dependencies (stdlib only).
 
 ### `proofread-ocr/` — LLM Proofreading
 
-A separate Python package for context-aware proofreading via Antigravity CLI (`agy`). See [proofread-ocr/README.md](proofread-ocr/README.md) for details.
+A separate Python package for context-aware proofreading via a completion API (Anthropic/Gemini). See [proofread-ocr/README.md](proofread-ocr/README.md) for details.
 
 4-phase pipeline: context extraction → chunk splitting → parallel proofreading → merge with diff report.
 

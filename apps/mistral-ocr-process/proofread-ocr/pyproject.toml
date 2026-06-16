@@ -1,12 +1,17 @@
 [project]
 name = "proofread-ocr"
 version = "0.1.0"
-description = "LLM-based OCR proofreading pipeline using Gemini CLI"
+description = "LLM-based OCR proofreading pipeline using a completion API (Anthropic/Gemini)"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "anthropic>=0.109.1",
+    "google-genai>=2.8.0",
+    "python-dotenv>=1.2.2",
+]
 
 [project.scripts]
 proofread-ocr = "proofread_ocr.cli:main"
+proofread-llm = "proofread_ocr.llm_cli:main"
 
 [build-system]
 requires = ["hatchling"]

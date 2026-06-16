@@ -1,4 +1,4 @@
-"""Phase 3: Parallel proofreading of chunks using Gemini."""
+"""Phase 3: Parallel proofreading of chunks using a completion API."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ import sys
 import time
 from pathlib import Path
 
-from .gemini import GeminiResponse, launch_tmux_session, run_gemini
 from .hashline import (
     HashlineError,
     apply_hashline_patch,
     describe_target,
     extract_hashline_patch,
 )
+from .llm import run_llm
 from .models import ChunkManifest, PipelineConfig, ProofreadResult
 
 
@@ -48,7 +48,7 @@ async def _proofread_chunk(
 
         start = time.monotonic()
         file_paths = [prompt_path, context_path, chunk_path]
-        prompt = "Proofread the following OCR text per the instructions provided via stdin."
+        prompt = "Proofread the following OCR text per the instructions in the input."
         if config.edit_mode == "hashline":
             try:
                 target = await describe_target(chunk_path.name, chunk_text, timeout=30)
@@ -87,11 +87,10 @@ async def _proofread_chunk(
             file_paths = [prompt_path, context_path, target_path]
             prompt = "Return only a Hashline patch for the OCR proofreading target."
 
-        response = await run_gemini(
+        response = await run_llm(
             file_paths=file_paths,
             prompt=prompt,
             model=config.model,
-            output_format="json",
             timeout=config.timeout,
         )
         duration = time.monotonic() - start
@@ -110,7 +109,7 @@ async def _proofread_chunk(
                 result = ProofreadResult(
                     chunk_id=chunk_id,
                     success=False,
-                    error="Empty response from Gemini",
+                    error="Empty response from LLM",
                     duration_sec=duration,
                 )
                 print(f"  Chunk {chunk_id}: FAILED (empty response)", file=sys.stderr)
@@ -183,32 +182,7 @@ async def run_proofreading(
         print(f"Error: Missing chunk files: {missing}", file=sys.stderr)
         sys.exit(1)
 
-    # tmux debug mode
-    if config.debug:
-        if config.edit_mode == "hashline":
-            print("Error: --debug is not supported with --edit-mode hashline.", file=sys.stderr)
-            sys.exit(1)
-        print(f"Phase 3: Launching tmux session with {len(chunk_paths)} panes...")
-        launch_tmux_session(
-            chunks=chunk_paths,
-            context_path=context_path,
-            prompt_path=prompt_path,
-            results_dir=results_dir,
-            model=config.model,
-        )
-        # After tmux detach, load results
-        results = []
-        for meta in manifest.chunks:
-            result_path = results_dir / f"chunk_{meta.id}.json"
-            if result_path.exists():
-                results.append(ProofreadResult.load(result_path))
-            else:
-                results.append(ProofreadResult(
-                    chunk_id=meta.id, success=False, error="No result after tmux session",
-                ))
-        return results
-
-    # Async subprocess mode
+    # Async HTTP completion mode
     print(
         f"Phase 3: Proofreading {len(chunk_paths)} chunks "
         f"(concurrency={config.concurrency}, edit_mode={config.edit_mode})..."

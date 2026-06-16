@@ -1,6 +1,6 @@
 # proofread-ocr
 
-LLM-based proofreading pipeline for OCR-converted Markdown documents, powered by Antigravity CLI (`agy`).
+LLM-based proofreading pipeline for OCR-converted Markdown documents, powered by a completion API (Anthropic or Google Gemini).
 
 Detects and corrects context-dependent OCR errors (character confusion, broken LaTeX, cross-reference mismatches) that rule-based cleanup scripts cannot handle.
 
@@ -8,7 +8,9 @@ Detects and corrects context-dependent OCR errors (character confusion, broken L
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
-- [Antigravity CLI](https://github.com/google-gemini/adk-python) (`agy`) with Gemini 3.5 Flash access
+- An API key for the chosen provider:
+  - `GEMINI_API_KEY` for Gemini models (default: `gemini-3.1-flash-lite-preview`)
+  - `ANTHROPIC_API_KEY` for Claude models (e.g. `claude-haiku-4-5-20251001`)
 - [Bun](https://bun.sh/) 1.3.14+ if using `--edit-mode hashline`
 - macOS (Apple Silicon) — tested environment
 
@@ -26,7 +28,7 @@ bun install  # only required for --edit-mode hashline
 # Full pipeline (all 4 phases)
 uv run proofread-ocr input.md
 
-# Dry run — preview chunk splits without calling agy
+# Dry run — preview chunk splits without calling the LLM
 uv run proofread-ocr input.md --dry-run --verbose
 ```
 
@@ -38,30 +40,19 @@ input.md ──> Phase 1 ──> Phase 2 ──> Phase 3 ──> Phase 4 ──>
              Extraction   Splitting   Proofread    + Review
 ```
 
-## LLM Backend Direction
+## LLM Backend
 
-The current implementation uses Antigravity CLI (`agy`) as the Gemini backend.
-Keep that path as the default until there is a concrete need to migrate model
-providers.
+The pipeline calls a completion API directly through the official provider SDK.
+The provider is inferred from the `--model` name at the `run_llm()` boundary in
+`src/proofread_ocr/llm.py`:
 
-If an OpenAI backend is added later, prefer a small provider abstraction around
-the current `run_gemini()` boundary:
+- names containing `gemini` → Google GenAI SDK (`GEMINI_API_KEY`)
+- names containing `claude`/`haiku`/`sonnet`/`opus` → Anthropic SDK (`ANTHROPIC_API_KEY`)
 
-- `AgyGeminiClient`: current behavior, preserving parallel subprocess execution,
-  retries, cached chunk results, and tmux debug mode.
-- `OpenAIResponsesClient`: synchronous per-chunk proofreading via the OpenAI
-  Responses API. This is the likely first OpenAI implementation because it maps
-  directly to `prompt + context + chunk -> corrected markdown`.
-- `OpenAIBatchClient`: future-only executor for large asynchronous proofreading
-  jobs. It should write `.jsonl` batch requests, submit a Batch API job, poll or
-  resume by batch id, and merge completed results back into the existing
-  `results/` format. Do not implement this until batch cost, latency, and
-  operational needs justify the extra state machine.
-
-Do not use Codex App Server as the proofreading backend. App Server is intended
-for rich Codex client integrations with threads, approvals, conversation
-history, and streamed agent events; this pipeline needs a deterministic
-text-to-text batch executor instead.
+`run_llm()` takes `prompt + context + chunk` and returns corrected Markdown (or a
+Hashline patch in `hashline` mode). Switching or adding a provider is a change at
+this single seam, not a rename across the codebase. This replaces the earlier
+Antigravity CLI (`agy`) subprocess backend.
 
 ### Phase 1: Context Extraction
 
@@ -79,7 +70,7 @@ Splits the document at `##` / `###` heading boundaries into chunks of ~20,000 to
 
 ### Phase 3: Parallel Proofreading
 
-Each chunk is sent to Antigravity CLI in parallel (`cat prompt context chunk | agy -p ...`). Every correction is annotated:
+Each chunk is sent to the completion API in parallel (`prompt + context + chunk` via `run_llm()`). Every correction is annotated:
 
 ```markdown
 homomorphism <!-- FIXED: homornorphism -> homomorphism | OCR: rn -> m -->
@@ -129,16 +120,15 @@ proofread-ocr input.md --phase merge      # Phase 4 only
 | --- | --- | --- |
 | `-o, --output <path>` | `{input}_proofread.md` | Output file path |
 | `-w, --workdir <path>` | `.proofread/` | Working directory for intermediate files |
-| `-m, --model <model>` | `gemini-3.5-flash` | Gemini model name |
+| `-m, --model <model>` | `gemini-3.1-flash-lite-preview` | Model name (provider inferred from it) |
 | `--chunk-size <tokens>` | `20000` | Max tokens per chunk |
 | `--overlap-lines <n>` | `5` | Overlap lines between chunks |
-| `--concurrency <n>` | `10` | Parallel agy invocations |
+| `--concurrency <n>` | `10` | Parallel LLM requests |
 | `--timeout <seconds>` | `300` | Timeout per chunk |
 | `--skip-context-review` | — | Skip human review of context.md |
 | `--context <path>` | — | Use existing context.md (skip Phase 1) |
-| `--debug` | — | tmux mode (visual monitoring) |
 | `--force` | — | Re-run all chunks ignoring cached results |
-| `--dry-run` | — | Show chunk splits and commands without executing |
+| `--dry-run` | — | Show chunk splits and planned calls without executing |
 | `--strip-annotations` | — | Remove FIXED/UNCERTAIN comments from output |
 | `--verbose` | — | Detailed progress logging |
 | `--prompt <path>` | — | Custom proofreading prompt |
@@ -151,8 +141,8 @@ proofread-ocr input.md --phase merge      # Phase 4 only
 # Reuse existing context, re-proofread all chunks
 proofread-ocr input.md --context context.md --phase proofread --force
 
-# Debug mode with tmux
-proofread-ocr input.md --debug --concurrency 6
+# Proofread with Claude instead of the default Gemini model
+proofread-ocr input.md --model claude-haiku-4-5-20251001 --concurrency 6
 
 # Clean output without annotation comments
 proofread-ocr input.md --strip-annotations
@@ -178,7 +168,8 @@ proofread-ocr/
 │   ├── chunker.py              # Phase 2: chunk splitting
 │   ├── proofreader.py          # Phase 3: parallel proofreading
 │   ├── merger.py               # Phase 4: merge + reports
-│   ├── gemini.py               # Async Antigravity CLI (agy) wrapper
+│   ├── llm.py                  # Async completion-API wrapper (Anthropic/Gemini)
+│   ├── llm_cli.py              # stdin->completion->stdout CLI (proofread-llm)
 │   ├── hashline.py             # Python wrapper around the Hashline sidecar
 │   └── models.py               # Data models (dataclasses)
 ├── tests/
@@ -200,4 +191,4 @@ uv run pytest tests/ -v
 - **Faithfulness first** — never alter the author's meaning; proofread, don't rewrite
 - **Transparency** — every fix is annotated with original text, correction, and reason
 - **Idempotency** — re-runnable with resume support; interrupted runs continue from where they stopped
-- **Zero external dependencies** — stdlib only (beyond Antigravity CLI itself)
+- **Minimal dependencies** — stdlib plus the official provider SDKs (`anthropic`, `google-genai`)

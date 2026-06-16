@@ -1,18 +1,18 @@
-"""Phase 1: Extract document context using Gemini."""
+"""Phase 1: Extract document context using a completion API."""
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-from .gemini import run_gemini
+from .llm import run_llm
 
 
 async def extract_context(
     input_path: Path,
     workdir: Path,
     prompt_path: Path,
-    model: str = "gemini-3-flash-preview",
+    model: str = "gemini-3.1-flash-lite-preview",
     skip_review: bool = False,
     verbose: bool = False,
 ) -> tuple[Path, float]:
@@ -35,12 +35,11 @@ async def extract_context(
 
     print("Phase 1: Extracting document context...")
 
-    # Call Gemini with the full document (pipe via stdin)
-    response = await run_gemini(
+    # Call the completion API with the full document
+    response = await run_llm(
         file_paths=[prompt_path, input_path],
-        prompt="Extract document context per the instructions provided via stdin.",
+        prompt="Extract document context per the instructions in the input.",
         model=model,
-        output_format="json",
     )
 
     if response.returncode != 0:

@@ -14,7 +14,7 @@ uv run proofread-ocr input.md --edit-mode hashline
 
 取り込んだのは full `oh-my-pi` agent ではなく、`@oh-my-pi/hashline` の patch applier だけです。
 
-- Python 側は既存の chunking、context、agy 呼び出し、cache、merge、diff report を維持する。
+- Python 側は既存の chunking、context、LLM 呼び出し（`run_llm`）、cache、merge、diff report を維持する。
 - TypeScript sidecar は Hashline の `describe` と `apply` だけを担当する。
 - LLM は numbered chunk と `[PATH#TAG]` を見て Hashline patch を返す。
 - patch 適用に成功した場合だけ、既存の `ProofreadResult.output_text` に校正済み本文を保存する。
@@ -39,7 +39,7 @@ uv run proofread-ocr input.md --edit-mode hashline
 
 ```text
 prompt + context + chunk
-  -> agy
+  -> run_llm (completion API)
   -> corrected chunk text
   -> results/chunk_NNN.json
 ```
@@ -51,7 +51,7 @@ chunk text
   -> scripts/apply_hashline.ts describe
   -> [chunk_NNN.md#TAG] + numbered lines
   -> prompt + context + numbered target
-  -> agy
+  -> run_llm (completion API)
   -> Hashline patch
   -> scripts/apply_hashline.ts apply
   -> corrected chunk text
@@ -111,7 +111,6 @@ failure result には、可能な範囲で `patch_text` と `error` を保存し
 
 ## 現時点の制限
 
-- `--debug` tmux mode とは併用不可です。
 - `replace block` など tree-sitter block 解決が必要な操作は prompt で使わせていません。
 - sidecar は in-memory FS だけを使い、実ファイルを直接書き換えません。
 - Hashline mode は実験機能です。品質比較が済むまでは `rewrite` をデフォルトのまま維持します。

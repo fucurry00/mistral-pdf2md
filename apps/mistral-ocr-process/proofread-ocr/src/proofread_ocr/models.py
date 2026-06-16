@@ -12,14 +12,13 @@ class PipelineConfig:
     input_path: Path
     output_path: Path
     workdir: Path = Path(".proofread")
-    model: str = "gemini-3.5-flash"
+    model: str = "gemini-3.1-flash-lite-preview"
     chunk_size: int = 20000
     overlap_lines: int = 5
     concurrency: int = 10
     timeout: int = 300
     phase: str | None = None
     skip_context_review: bool = False
-    debug: bool = False
     force: bool = False
     dry_run: bool = False
     context_path: Path | None = None

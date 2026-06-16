@@ -49,8 +49,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="作業ディレクトリ（デフォルト: .proofread/）",
     )
     parser.add_argument(
-        "-m", "--model", default="gemini-3.5-flash",
-        help="Geminiモデル（デフォルト: gemini-3.5-flash）",
+        "-m", "--model", default="gemini-3.1-flash-lite-preview",
+        help="モデル名（プロバイダは名前から判定: 'gemini'→Gemini, 'claude/haiku/...'→Anthropic）",
     )
 
     # Phase selection
@@ -73,7 +73,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--concurrency", type=int, default=10, help="並列度（デフォルト: 10）")
     parser.add_argument("--timeout", type=int, default=300, help="チャンクあたりのタイムアウト秒（デフォルト: 300）")
     parser.add_argument("--skip-context-review", action="store_true", help="Phase 1後の人間レビューをスキップ")
-    parser.add_argument("--debug", action="store_true", help="tmuxモードで実行")
     parser.add_argument("--force", action="store_true", help="既存の結果を無視して再実行")
     parser.add_argument("--dry-run", action="store_true", help="実行せず、チャンク分割結果のみ表示")
     parser.add_argument("--verbose", action="store_true", help="詳細ログ出力")
@@ -135,7 +134,6 @@ async def _run_pipeline(args: argparse.Namespace) -> None:
         timeout=args.timeout,
         phase=args.phase,
         skip_context_review=args.skip_context_review,
-        debug=args.debug,
         force=args.force,
         dry_run=args.dry_run,
         context_path=Path(args.context).resolve() if args.context else None,
@@ -228,12 +226,12 @@ async def _run_pipeline(args: argparse.Namespace) -> None:
             for meta in manifest.chunks:
                 print(f"  chunk_{meta.id}: {meta.section} ({meta.estimated_tokens} tokens, "
                       f"lines {meta.line_start}-{meta.line_end})")
-            print(f"\nGemini commands that would be executed:")
+            print(f"\nLLM calls that would be made (model={config.model}):")
             for meta in manifest.chunks:
                 if config.edit_mode == "hashline":
                     print(f"  # Hashline mode: create numbered chunk target, then apply returned patch")
-                print(f"  cat {proofread_prompt} {context_path} {chunks_dir}/chunk_{meta.id}.md "
-                      f"| agy -p 'Proofread the following OCR text per the instructions provided via stdin.'")
+                print(f"  proofread chunk_{meta.id}: system=proofread prompt, "
+                      f"user={proofread_prompt.name}+{context_path.name}+chunk_{meta.id}.md")
             return
 
         if phase == "chunk":

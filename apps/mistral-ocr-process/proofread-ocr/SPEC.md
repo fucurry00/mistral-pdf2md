@@ -20,9 +20,9 @@ Important options:
 | `--phase` | all | One of `context`, `chunk`, `proofread`, `merge` |
 | `--chunk-size` | `20000` | Approximate token target |
 | `--overlap-lines` | `5` | Context overlap between chunks |
-| `--concurrency` | `10` | Parallel `agy` invocations |
+| `--concurrency` | `10` | Parallel LLM requests |
 | `--timeout` | `300` | Per-chunk timeout in seconds |
-| `--model` | `gemini-3.5-flash` | Gemini model passed to the backend |
+| `--model` | `gemini-3.1-flash-lite-preview` | Model name (provider inferred from it) |
 | `--edit-mode` | `rewrite` | `rewrite` or experimental `hashline` |
 | `--strip-annotations` | off | Remove correction comments from output |
 
@@ -31,7 +31,7 @@ Important options:
 1. `context`: extract notation, structure, and terminology into `context.md`.
 2. `chunk`: split Markdown at heading boundaries into chunk files and a
    manifest.
-3. `proofread`: run parallel Antigravity CLI (`agy`) jobs for each chunk.
+3. `proofread`: run parallel completion-API requests for each chunk.
 4. `merge`: combine results, strip overlaps, and write reports.
 
 ## Workdir Layout
@@ -56,16 +56,15 @@ output/stats.json
 
 ## Backends
 
-The current backend is Antigravity CLI (`agy`). The stable boundary is around
-the `run_gemini()` behavior in `src/proofread_ocr/gemini.py`: prompt, context,
-and chunk text go in; corrected Markdown comes out.
+The backend is a completion API reached through the official provider SDK. The
+stable boundary is `run_llm()` in `src/proofread_ocr/llm.py`: prompt, context,
+and chunk text go in; corrected Markdown (or a Hashline patch) comes out. The
+provider is inferred from the `--model` name (`gemini*` → Google GenAI,
+`claude/haiku/sonnet/opus` → Anthropic).
 
-Future provider support should keep that boundary small. The first OpenAI
-backend should be synchronous per-chunk Responses API execution. Batch API
-support should remain future-only until there is a concrete operational need.
-
-Codex App Server is not the proofreading backend because this package needs a
-deterministic text-to-text batch executor, not a threaded agent client.
+Adding a provider should keep that boundary small — a new branch in `run_llm()`,
+not a change across callers. This replaces the earlier Antigravity CLI (`agy`)
+subprocess backend.
 
 ## Edit Modes
 

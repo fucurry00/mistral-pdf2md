@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PDF → Markdown 変換パイプライン（OCR → cleanup → Gemini清書）
+PDF → Markdown 変換パイプライン（OCR → cleanup → LLM清書）
 
 単一ファイル:
     python pipeline.py <input.pdf> [output_dir] [options]
@@ -12,7 +12,7 @@ PDF → Markdown 変換パイプライン（OCR → cleanup → Gemini清書）
     ocr          : Mistral OCR APIでPDF → Markdown変換
     plan-cleanup : LLMがcleanup_plan.jsonだけを生成（任意）
     cleanup      : OCRアーティファクトをクリーンアップ（--mode / --plan で選択）
-    proofread    : proofread-ocr（Gemini）でLLMベース清書
+    proofread    : proofread-ocr（completion API）でLLMベース清書
 
 出力ディレクトリ構造:
     {output_dir}/{stem}/
@@ -126,7 +126,12 @@ Current defaults:
 Prefer conservative settings. If unsure, leave fields null or empty.
 """
     sample = _sample_markdown_for_planner(md_path)
-    cmd = ["agy", "-p", prompt, "--print-timeout", f"{timeout}s"]
+    proofread_project = Path(__file__).parent / "proofread-ocr"
+    cmd = [
+        "uv", "run", "--project", str(proofread_project), "proofread-llm",
+        "--system", prompt,
+        "--timeout", str(timeout),
+    ]
     result = subprocess.run(
         cmd,
         input=sample,
@@ -189,7 +194,7 @@ def run_cleanup(
 
 
 def run_proofread(md_path: Path, preset: str | None, timeout: int = 600):
-    """Step 3: proofread-ocr で Gemini 清書を実行。md_path を上書きする。"""
+    """Step 3: proofread-ocr で LLM 清書を実行。md_path を上書きする。"""
     proofread_project = Path(__file__).parent / "proofread-ocr"
     cmd = [
         "uv", "run", "--project", str(proofread_project), "proofread-ocr",
@@ -276,7 +281,7 @@ def process_single(
         print("[Step 3] Cleanup: skipped")
 
     if "proofread" in steps:
-        print("\n[Step 4] Gemini proofreading...")
+        print("\n[Step 4] LLM proofreading...")
         run_proofread(md_path, preset)
     else:
         print("[Step 4] Proofreading: skipped")
@@ -286,7 +291,7 @@ def process_single(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="PDF → Markdown パイプライン（OCR → cleanup → Gemini清書）",
+        description="PDF → Markdown パイプライン（OCR → cleanup → LLM清書）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -340,7 +345,7 @@ def main():
         "--planner-timeout",
         type=int,
         default=180,
-        help="cleanup planner の agy タイムアウト秒（デフォルト: 180）",
+        help="cleanup planner の LLM タイムアウト秒（デフォルト: 180）",
     )
     parser.add_argument(
         "--cleanup-plan",

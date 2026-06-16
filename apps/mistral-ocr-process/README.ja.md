@@ -8,7 +8,7 @@ PDF から Markdown への変換パイプラインです。Mistral OCR、ルー�
 
 ```
 PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
-        Mistral     ルールベース  Antigravity
+        Mistral     ルールベース  LLM
         OCR         Cleanup       Proofread
 ```
 
@@ -17,7 +17,7 @@ PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
 | 1. OCR | `convert_pdf_to_markdown.py` | Mistral OCR API で PDF を Markdown に変換 |
 | 2a. Cleanup planner | `pipeline.py --steps plan-cleanup,...` | 任意。LLM が `cleanup_plan.json` だけを生成 |
 | 2b. Cleanup | `cleanup_ocr.py` | 正規表現ルールで OCR アーティファクトを除去 |
-| 3. Proofread | `proofread-ocr/` | Antigravity CLI (`agy`) 経由で文脈ベース校正 |
+| 3. Proofread | `proofread-ocr/` | completion API（Anthropic/Gemini）経由で文脈ベース校正 |
 
 3ステージは `pipeline.py` で一括実行できます。
 
@@ -26,7 +26,7 @@ PDF ──> Stage 1 ──> Stage 2 ──> Stage 3
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
 - `.env` の Mistral API キー（`MISTRAL_API_KEY=...`）
-- Stage 3 を使う場合は Antigravity CLI (`agy`)
+- Stage 2a/3 を使う場合は LLM API キー（`GEMINI_API_KEY` または `ANTHROPIC_API_KEY`）
 - `--edit-mode hashline` を使う場合のみ Bun 1.3.14+
 
 ## クイックスタート
@@ -115,7 +115,7 @@ uv run cleanup-ocr file.md --dry-run --verbose
 
 ### `proofread-ocr/`
 
-Antigravity CLI (`agy`) を使う独立パッケージです。詳細は [proofread-ocr/README.ja.md](proofread-ocr/README.ja.md) を参照してください。
+completion API（Anthropic/Gemini）を使う独立パッケージです。詳細は [proofread-ocr/README.ja.md](proofread-ocr/README.ja.md) を参照してください。
 
 4フェーズ: context extraction → chunk splitting → parallel proofreading → merge。
 
