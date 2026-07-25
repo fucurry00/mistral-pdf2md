@@ -1,0 +1,20 @@
+{
+  "model": "mistral-ocr-latest",
+  "metadata": {"title": "Mixed Visual Lecture"},
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "# Mixed Visual Lecture\n\n[tbl-0.html](tbl-0.html)\n\nFigure 1: Measured response curve\n\n![img-0.jpeg](img-0.jpeg)",
+      "tables": [{"id": "tbl-0", "content": "broken"}],
+      "images": [{"id": "img-0"}],
+      "confidence_scores": {"average_page_confidence_score": 0.95}
+    },
+    {
+      "index": 1,
+      "markdown": "## Formula\n\n[formula] E = mc?\n\nAn uncertain OCR fragment follows: §",
+      "tables": [],
+      "images": [],
+      "confidence_scores": {"average_page_confidence_score": 0.45}
+    }
+  ]
+}

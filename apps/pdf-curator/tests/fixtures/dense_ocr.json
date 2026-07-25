@@ -1,0 +1,24 @@
+{
+  "model": "mistral-ocr-latest",
+  "metadata": {"title": "Dense Handout"},
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "# Dense Handout\n\nThis long opening paragraph defines the topic and preserves the lecturer's original terminology without normalization.",
+      "header": "Dense Handout",
+      "footer": "Department archive"
+    },
+    {
+      "index": 1,
+      "markdown": "The same section continues across a page boundary with examples, qualifications, and an explicit warning that must remain in the output.",
+      "header": "Dense Handout",
+      "footer": "Department archive"
+    },
+    {
+      "index": 2,
+      "markdown": "## Next Topic\n\nA later section starts here and retains its source wording.",
+      "header": "Dense Handout",
+      "footer": "Department archive"
+    }
+  ]
+}

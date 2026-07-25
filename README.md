@@ -3,6 +3,10 @@
 PDF to Markdown conversion pipeline using Mistral OCR, rule-based cleanup, and
 LLM-based proofreading.
 
+The new provenance-first implementation lives in `apps/pdf-curator/` and emits
+source-referenced `curated.md` artifacts. The older OCR/proofread pipeline
+remains available as a separate legacy path.
+
 ## Architecture
 
 ```
@@ -41,6 +45,7 @@ See:
 | Document | Purpose |
 | --- | --- |
 | [`SPEC.md`](SPEC.md) | Current repository-level behavior contract |
+| [`apps/pdf-curator/README.md`](apps/pdf-curator/README.md) | Provenance-first `curated.md` pipeline usage |
 | [`apps/mistral-ocr-process/README.md`](apps/mistral-ocr-process/README.md) | Main pipeline usage |
 | [`apps/mistral-ocr-process/README.ja.md`](apps/mistral-ocr-process/README.ja.md) | Japanese pipeline usage |
 | [`apps/mistral-ocr-process/proofread-ocr/README.md`](apps/mistral-ocr-process/proofread-ocr/README.md) | Proofreading package usage |
@@ -54,6 +59,7 @@ short-lived run state outside the repository.
 
 | App | Description |
 | --- | --- |
+| `apps/pdf-curator/` | Provenance-first PDF OCR → source-referenced `curated.md` |
 | `apps/mistral-ocr-process/` | Core pipeline: OCR → cleanup → proofread |
 | `apps/mistral-ocr-process/proofread-ocr/` | Chunked OCR proofreading with `rewrite` and experimental `hashline` edit modes |
 | `apps/mcp-server/` | MCP server exposing the pipeline to Claude |
@@ -61,6 +67,10 @@ short-lived run state outside the repository.
 ## Quick Start
 
 ```bash
+# New provenance-first pipeline
+cd apps/pdf-curator
+uv run pdf-curator input.pdf output/
+
 # Full pipeline (OCR → cleanup → proofread)
 cd apps/mistral-ocr-process
 uv run pipeline input.pdf output/
@@ -82,6 +92,7 @@ uv run pdf2md-mcp
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
-- Mistral API key in `.env` (`MISTRAL_API_KEY=...`)
+- Mistral API key: process environment for `apps/pdf-curator/`; legacy app-local
+  `.env` for `apps/mistral-ocr-process/`
 - [Antigravity CLI](https://github.com/google-gemini/adk-python) (`agy`)
 - [Bun](https://bun.sh/) 1.3.14+ only when using `--edit-mode hashline`

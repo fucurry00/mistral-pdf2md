@@ -83,6 +83,7 @@ def process_with_mistral(api_key, base64_pdf, timeout):
             "document_url": f"data:application/pdf;base64,{base64_pdf}",
         },
         include_image_base64=True,
+        table_format="markdown",
     )
     return response
 

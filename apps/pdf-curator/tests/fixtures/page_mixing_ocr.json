@@ -1,0 +1,13 @@
+{
+  "model": "mistral-ocr-latest",
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "# Page One\n\nALPHA-PAGE-ONE-SENTINEL belongs to the first page."
+    },
+    {
+      "index": 1,
+      "markdown": "## Page Two\n\nBETA-PAGE-TWO-SENTINEL belongs to the second page."
+    }
+  ]
+}
