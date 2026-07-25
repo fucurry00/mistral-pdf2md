@@ -1,0 +1,29 @@
+[project]
+name = "pdf-curator"
+version = "0.1.0"
+description = "Provenance-first PDF OCR pipeline for source-referenced curated Markdown"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mistralai>=2.0",
+    "pypdf>=5.0",
+]
+
+[project.scripts]
+pdf-curator = "pdf_curator.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pdf_curator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

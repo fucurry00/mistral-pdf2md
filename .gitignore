@@ -5,10 +5,17 @@ build/
 dist/
 wheels/
 *.egg-info
-.venv
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # IDE files
 

@@ -1,0 +1,29 @@
+{
+  "model": "mistral-ocr-latest",
+  "metadata": {
+    "course_name": "CS 101",
+    "lecture_name": "Introduction"
+  },
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "# Introduction\n\nCore ideas remain faithful to the source.\n\n- First principle\n- Second principle\n\n1",
+      "header": "CS 101",
+      "footer": "Shared lecture footer",
+      "dimensions": {"width": 1000, "height": 1400},
+      "confidence_scores": {"average_page_confidence_score": 0.99},
+      "images": [],
+      "tables": []
+    },
+    {
+      "index": 1,
+      "markdown": "## Details\n\nThe second page contains supporting detail.\n\n2",
+      "header": "CS 101",
+      "footer": "Shared lecture footer",
+      "dimensions": {"width": 1000, "height": 1400},
+      "confidence_scores": {"average_page_confidence_score": 0.98},
+      "images": [],
+      "tables": []
+    }
+  ]
+}
